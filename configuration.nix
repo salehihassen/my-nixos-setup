@@ -13,10 +13,14 @@
       ./hardware-configuration.nix
     ];
 
-
   # Flakes 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   
+  # Allow unfree as needed
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+    "displaylink"
+    "evdi"
+  ];
 
 
   # BOOT , TODO migrate to separate module ====================================
@@ -117,7 +121,9 @@
   services.greetd.enable = true;
   # Graphical greetd greeter
   programs.regreet.enable = true;
-
+  # Displaylink video driver
+  services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
+  systemd.services.dlm.wantedBy = [ "multi-user.target" ];
 
   environment.systemPackages = with pkgs; [
     # Niri desktop basics
@@ -127,6 +133,9 @@
     fuzzel
     mako
     swaybg
+
+    # Docking and external devices
+    displaylink
 
     # Termincal and clipboard screenshot basics
     alacritty
