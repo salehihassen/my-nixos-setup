@@ -178,7 +178,8 @@
     vim
     wget
     curl
-    
+    unzip
+
     # Networking
     tailscale
   ];
