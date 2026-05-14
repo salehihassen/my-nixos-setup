@@ -13,9 +13,9 @@
       ./hardware-configuration.nix
     ];
 
-  # Flakes 
+  # Flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  
+
   # Allow unfree as needed
   nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
     "displaylink"
@@ -41,7 +41,7 @@
     };
   };
   boot.resumeDevice = "/dev/mapper/cryptnixswap";
-  
+
   boot.loader.systemd-boot.enable = false;
 
   boot.loader.grub = {
@@ -62,7 +62,7 @@
   services.fstrim.enable = true;
 
   # NETWORKING =============================================================
-   
+
   # networking.hostName = "nixos"; # Define your hostname.
   # Configure network connections interactively with nmcli or nmtui.
   networking.networkmanager.enable = true;
@@ -71,7 +71,7 @@
   services.openssh = {
     enable = true;
     ports = [ 22 ];
-    
+
     settings = {
       PermitRootLogin = "no";
       PasswordAuthentication = true;
@@ -106,12 +106,7 @@
   powerManagement.enable = true;
   services.upower.enable = true;
 
-
-  # LOGIN ===========================================
-  # Login UI
-  
-
-  # DISPLAY / AUDIO / APPS  =========================
+  # DISPLAY / AUDIO / APPS / LOGIN  =================
   # Enable the X11 windowing system.
   # services.xserver.enable = true;
 
@@ -196,7 +191,7 @@
       xdg-desktop-portal-gtk
     ];
   };
- 
+
   # Audio
   security.rtkit.enable = true;
 
@@ -207,11 +202,9 @@
     alsa.support32Bit = true;
   };
 
-  # APPS  / PROGRAMS =============================
-
   programs.git.enable = true;
 
-  # MISC =========================================   
+  # MISC =========================================
 
   # Configure keymap in X11
   # services.xserver.xkb.layout = "us";
