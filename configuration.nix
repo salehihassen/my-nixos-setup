@@ -120,14 +120,17 @@
   services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
   systemd.services.dlm.wantedBy = [ "multi-user.target" ];
 
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = with pkgs; [    
+ 
     # Niri desktop basics
     niri
     xwayland-satellite
-    waybar
     fuzzel
-    mako
     swaybg
+
+    # Maybe will remove for niri desktop soon
+    mako
+    waybar
 
     # Docking and external devices
     displaylink
