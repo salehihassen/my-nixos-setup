@@ -1,4 +1,10 @@
-{ pkgs, ... }: {
+{ config, pkgs, inputs, ... }: 
+
+{
+  imports = [
+    inputs.noctalia.homeModules.default
+  ];
+
   home.username = "saleh";
   home.homeDirectory = "/home/saleh";
   home.stateVersion = "25.11";
