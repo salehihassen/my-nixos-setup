@@ -121,8 +121,8 @@
   services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
   systemd.services.dlm.wantedBy = [ "multi-user.target" ];
 
-  environment.systemPackages = with pkgs; [    
- 
+  environment.systemPackages = with pkgs; [
+
     # Niri desktop basics
     niri
     xwayland-satellite
@@ -228,10 +228,19 @@
   # Enable touchpad support (enabled default in most desktopManager).
   # services.libinput.enable = true;
 
+  # Create a NixOS config group, group is allowed to edit nixos configs
+  users.groups.nixcfg = {};
+  systemd.tmpfiles.rules = [
+    "d /etc/nixos 2775 root nixcfg -"
+  ];
+
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.saleh = {
     isNormalUser = true;
-    extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [
+      "nixcfg" # Enable modifying nixos configs
+      "wheel" # Enable 'sudo' for the user
+    ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [
       tree
     ];

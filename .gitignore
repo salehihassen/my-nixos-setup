@@ -1,0 +1,24 @@
+# Secrets / local private material
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.age
+.env
+.env.*
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Local/editor noise
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Backups
+*.bak
+*.backup
+*.before-home-manager
