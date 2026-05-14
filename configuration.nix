@@ -65,6 +65,7 @@
 
   # networking.hostName = "nixos"; # Define your hostname.
   # Configure network connections interactively with nmcli or nmtui.
+  hardware.bluetooth.enable = true;
   networking.networkmanager.enable = true;
   networking.hostName = "j2";
 
@@ -102,7 +103,7 @@
   # };
 
   # POWER =====================================================
-
+  services.power-profiles-daemon.enable = true;
   powerManagement.enable = true;
   services.upower.enable = true;
 
