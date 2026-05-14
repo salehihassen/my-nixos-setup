@@ -24,8 +24,10 @@
 
   programs.git = {
     enable = true;
-    userName = "Saleh Hassen";
-    userEmail = "";
+    settings.user = {
+      email = "";
+      name = "Saleh Hassen";
+    };
   };
 
   programs.ghostty = {
