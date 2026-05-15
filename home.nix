@@ -52,12 +52,12 @@
       "github.com" = {
         hostname = "github.com";
         user = "git";
-        identityFile = "~/.ssh/id_ed25519.pub"
+        identityFile = "~/.ssh/id_ed25519.pub";
         addKeysToAgent = "4h";
         identitiesOnly = true;
       };
     };
-  }
+  };
         
   #programs.noctalia-shell = {
     #enable = true;
