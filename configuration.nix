@@ -84,7 +84,7 @@
   #  enable = true;
   #  allowedTCPPorts = [ 22 ];
   #};
-
+  security.polkit.enable = true;
   services.tailscale.enable = true;
 
 
@@ -153,7 +153,9 @@
     networkmanagerapplet
 
     # Auth / priv prompts for GUI apps
+    polkit
     kdePackages.polkit-kde-agent-1
+    networkmanagerapplet
 
     # Lock screen (not login manager)
     swaylock
@@ -237,6 +239,7 @@
     extraGroups = [
       "nixcfg" # Enable modifying nixos configs
       "wheel" # Enable 'sudo' for the user
+      "networkmanager" # Network mgmt
     ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [
       tree
