@@ -87,8 +87,6 @@
 
   services.tailscale.enable = true;
 
-  # Set your time zone.
-  # time.timeZone = "Europe/Amsterdam";
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
@@ -217,13 +215,12 @@
   # Enable CUPS to print documents.
   # services.printing.enable = true;
 
-  # Enable sound.
-  # services.pulseaudio.enable = true;
-  # OR
-  # services.pipewire = {
-  #   enable = true;
-  #   pulse.enable = true;
-  # };
+  # EST Timezone
+  time.timeZone = "America/New_York";
+  # Keep Linux using UTC hardware clock.
+  time.hardwareClockInLocalTime = false;
+  # Usually enabled by default, but explicit is fine.
+  services.timesyncd.enable = true;
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.libinput.enable = true;
