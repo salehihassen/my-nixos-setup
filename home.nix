@@ -29,9 +29,10 @@
       name = "Saleh Hassen";
     };
     extraConfig = {
+      init.defaultBranch = "main";
       safe = {
         directory = "/etc/nixos";
-      }
+      };
     };
   };
 
@@ -44,7 +45,7 @@
   };
 
   services.ssh-agent.enable = true;
-  programs.ssh {
+  programs.ssh = {
     enable = true;
 
     matchBlocks = {
