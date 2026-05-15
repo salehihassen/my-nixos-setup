@@ -28,6 +28,11 @@
       email = "";
       name = "Saleh Hassen";
     };
+    extraConfig = {
+      safe = {
+        directory = "/etc/nixos";
+      }
+    };
   };
 
   programs.ghostty = {
