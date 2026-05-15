@@ -12,7 +12,7 @@
 
   programs.bash.enable = true;
   programs.home-manager.enable = true;
-
+  
   home.packages = with pkgs; [
     htop
     ripgrep
@@ -38,6 +38,21 @@
     enable = true;
   };
 
+  services.ssh-agent.enable = true;
+  programs.ssh {
+    enable = true;
+
+    matchBlocks = {
+      "github.com" = {
+        hostname = "github.com";
+        user = "git";
+        identityFile = "~/.ssh/id_ed25519.pub"
+        addKeysToAgent = "4h";
+        identitiesOnly = true;
+      };
+    };
+  }
+        
   #programs.noctalia-shell = {
     #enable = true;
 #
