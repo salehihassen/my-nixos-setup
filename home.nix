@@ -3,7 +3,8 @@
 {
   imports = [
     #inputs.noctalia.homeModules.default
-    ./home/noctalia.nix
+    ./home/noctalia.nix # Noctalia UIs
+    ./home/ssh.nix # Ssh agent and ssh configs
   ];
 
   home.username = "saleh";
@@ -34,7 +35,7 @@
     };
     settings = {
       init.defaultBranch = "main";
-      safe.directory = "etc/nixos";
+      safe.directory = "/etc/nixos";
     };
   };
 
@@ -44,21 +45,6 @@
 
   programs.fuzzel = {
     enable = true;
-  };
-
-  services.ssh-agent.enable = true;
-  programs.ssh = {
-    enable = true;
-
-    matchBlocks = {
-      "github.com" = {
-        hostname = "github.com";
-        user = "git";
-        identityFile = "~/.ssh/id_ed25519.pub";
-        addKeysToAgent = "4h";
-        identitiesOnly = true;
-      };
-    };
   };
         
   home.sessionVariables = {
