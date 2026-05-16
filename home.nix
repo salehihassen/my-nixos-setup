@@ -22,6 +22,10 @@
     git
   ];
 
+  programs.tmux = {
+    enable = true;
+  };
+
   programs.git = {
     enable = true;
     settings.user = {
@@ -59,49 +63,6 @@
     };
   };
         
-  #programs.noctalia-shell = {
-    #enable = true;
-#
-    #settings = {
-      #bar = {
-        #position = "top";
-        #density = "default";
-#
-        #widgets = {
-          #left = [
-            #{
-              #id = "ControlCenter";
-              #useDistroLogo = true;
-            #}
-          #];
-#
-          #center = [
-            #{
-              #id = "Workspace";
-              #hideUnoccupied = false;
-              #labelMode = "none";
-            #}
-          #];
-#
-          #right = [
-            #{
-              #id = "Network";
-            #}
-            #{
-              #id = "Battery";
-              #warningThreshold = 30;
-            #}
-            #{
-              #id = "Clock";
-              #formatHorizontal = "hh:mm";
-              #useMonospacedFont = true;
-            #}
-          #];
-        #};
-      #};
-    #};
-  #};
-
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
