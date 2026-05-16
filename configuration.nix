@@ -178,6 +178,8 @@
     wget
     curl
     unzip
+    tmux
+    ripgrep
 
     # Networking
     tailscale
