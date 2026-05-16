@@ -32,11 +32,9 @@
       email = "";
       name = "Saleh Hassen";
     };
-    extraConfig = {
+    settings = {
       init.defaultBranch = "main";
-      safe = {
-        directory = "/etc/nixos";
-      };
+      safe.directory = "etc/nixos";
     };
   };
 
