@@ -171,6 +171,9 @@
     # Browsers
     chromium
 
+    # Boot / firmware tools
+    efibootmgr
+
     # CLI tools
     git
     gh
