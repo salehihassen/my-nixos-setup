@@ -173,6 +173,7 @@
 
     # Boot / firmware tools
     efibootmgr
+    os-prober
 
     # CLI tools
     git
