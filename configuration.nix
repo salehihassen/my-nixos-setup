@@ -52,6 +52,13 @@
     configurationLimit = 10;
   };
 
+  boot.loader.grub.extraEntries = ''
+    menuentry "Pop!_OS via systemd-boot" {
+      search --no-floppy --set=esp --file /EFI/systemd/systemd-bootx64.efi
+      chainloader ($esp)/EFI/systemd/systemd-bootx64.efi
+    }
+  '';
+
   boot.loader.efi = {
     canTouchEfiVariables = true;
     efiSysMountPoint = "/boot/efi";
