@@ -174,6 +174,7 @@
     # Boot / firmware tools
     efibootmgr
     os-prober
+    gparted
 
     # CLI tools
     git
