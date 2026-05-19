@@ -13,7 +13,13 @@
 
   programs.bash.enable = true;
   programs.home-manager.enable = true;
-  
+
+  home.file.".config/wallpapers/traffic-blur.jpg".source =
+    ../../assets/wallpapers/traffic-blur.jpg;
+
+  home.file.".config/share/wallpapers/horizon.jpg".source =
+    ../../assets/wallpapers/horizon.jpg;
+
   home.packages = with pkgs; [
     htop
     ripgrep
@@ -46,9 +52,10 @@
   programs.fuzzel = {
     enable = true;
   };
-        
+
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
   };
+
 }
