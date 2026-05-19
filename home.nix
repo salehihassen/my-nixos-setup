@@ -14,11 +14,11 @@
   programs.bash.enable = true;
   programs.home-manager.enable = true;
 
-  home.file.".config/wallpapers/traffic-blur.jpg".source =
-    ../../assets/wallpapers/traffic-blur.jpg;
+  # home.file.".config/wallpapers/traffic-blur.jpg".source =
+  #  ../../assets/wallpapers/traffic-blur.jpg;
 
-  home.file.".config/share/wallpapers/horizon.jpg".source =
-    ../../assets/wallpapers/horizon.jpg;
+  # home.file.".config/wallpapers/horizon.jpg".source =
+  #   ../../assets/wallpapers/horizon.jpg;
 
   home.packages = with pkgs; [
     htop

@@ -1,6 +1,10 @@
 { config, pkgs, inputs, ... }:
 
 {
+
+  home.file.".config/wallpapers/traffic-blur.jpg".source = 
+    ../assets/wallpapers/traffic-blur.jpg;
+
   imports = [
     inputs.noctalia.homeModules.default
   ];
@@ -9,6 +13,11 @@
     enable = true;
 
     settings = {
+      wallpaper = {
+        enable = true;
+        image = "${config.home.homeDirectory}/.config/wallpapers/traffic-blur.jpg";
+        fillMode = "cover";
+      };
       bar = {
         position = "top";
         density = "default";
