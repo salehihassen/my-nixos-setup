@@ -199,6 +199,9 @@
     tmux
     ripgrep
 
+    # Development
+    pnpm
+
     # Networking
     tailscale
   ];
