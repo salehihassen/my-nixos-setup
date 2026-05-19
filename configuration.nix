@@ -52,17 +52,23 @@
     configurationLimit = 10;
   };
 
-  boot.loader.grub.extraEntries = ''
-    menuentry "Pop!_OS via systemd-boot" {
-      search --no-floppy --set=esp --file /EFI/systemd/systemd-bootx64.efi
-      chainloader ($esp)/EFI/systemd/systemd-bootx64.efi
-    }
-  '';
-
   boot.loader.efi = {
     canTouchEfiVariables = true;
     efiSysMountPoint = "/boot/efi";
   };
+
+  # Extra boot entry for my PopOS partition
+  boot.loader.grub.extraEntries = ''
+    menuentry "Pop!_OS current" {
+      search --no-floppy --set=esp --file /EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz.efi
+      chainloader ($esp)/EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz.efi initrd=\EFI\Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9\initrd.img root=UUID=312e170d-932b-4e52-bbae-8564c41d00f9 ro quiet loglevel=0 systemd.show_status=false splash
+    }
+
+    menuentry "Pop!_OS previous kernel" {
+      search --no-floppy --set=esp --file /EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz-previous.efi
+      chainloader ($esp)/EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz-previous.efi initrd=\EFI\Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9\initrd.img-previous root=UUID=312e170d-932b-4e52-bbae-8564c41d00f9 ro quiet loglevel=0 systemd.show_status=false splash
+    }
+  '';
 
   boot.supportedFilesystems = [ "btrfs" ];
 
