@@ -1,6 +1,6 @@
 ## Overview
 
-This repo represents my NixOS configs in `/etc/nixos` excluding privately managed files.
+This repo represents my NixOS configs in `/etc/nixos` excluding privately managed files. I'm new to NixOS so beware what you copy from my setup.
 
 configuration.nix
 home.nix
