@@ -189,6 +189,9 @@
     os-prober
     gparted
 
+    # Dev
+    uv
+
     # CLI tools
     git
     gh
@@ -198,6 +201,7 @@
     unzip
     tmux
     ripgrep
+    imagemagick
 
     # Development
     pnpm

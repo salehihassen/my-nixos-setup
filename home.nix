@@ -27,6 +27,7 @@
     jq
     unzip
     git
+    nodejs_24
   ];
 
   programs.tmux = {
@@ -47,6 +48,13 @@
 
   programs.ghostty = {
     enable = true;
+  };
+
+  programs.neovim = {
+    enable = true;
+    extraConfig = ''
+      set number relativenumber
+    '';
   };
 
   programs.fuzzel = {
