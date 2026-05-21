@@ -66,4 +66,7 @@
     NIXOS_OZONE_WL = "1";
   };
 
+  home.sessionPath = [
+    "${config.home.homeDirectory}/.npm-global/bin"
+  ];
 }

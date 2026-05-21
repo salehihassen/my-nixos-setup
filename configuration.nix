@@ -273,6 +273,16 @@
     ];
   };
 
+  programs.nix-ld = {
+    enable = true;
+
+    libraries = with pkgs; [
+      stdenv.cc.cc
+      zlib
+      openssl
+    ];
+  };
+
   # programs.firefox.enable = true;
 
   # List packages installed in system profile.
