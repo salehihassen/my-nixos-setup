@@ -35,6 +35,7 @@
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
+    NPM_CONFIG_PREFIX = "${config.home.homeDirectory}/.npm-global";
   };
 
   home.sessionPath = [
