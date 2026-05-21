@@ -11,7 +11,18 @@
   home.homeDirectory = "/home/saleh";
   home.stateVersion = "25.11";
 
-  programs.bash.enable = true;
+  programs.bash = {
+    enable = true;
+
+    bashrcExtra = ''
+      if [ -f "$HOME/.bash_secrets" ]; then
+        . "$HOME/.bash_secrets"
+      fi
+
+      source ~/.bash_aliases
+    '';
+  };
+
   programs.home-manager.enable = true;
 
   # home.file.".config/wallpapers/traffic-blur.jpg".source =
@@ -19,6 +30,16 @@
 
   # home.file.".config/wallpapers/horizon.jpg".source =
   #   ../../assets/wallpapers/horizon.jpg;
+  home.file.".bash_aliases".source = ./dotfiles/bash/bash_aliases;
+
+  home.sessionVariables = {
+    MOZ_ENABLE_WAYLAND = "1";
+    NIXOS_OZONE_WL = "1";
+  };
+
+  home.sessionPath = [
+    "${config.home.homeDirectory}/.npm-global/bin"
+  ];
 
   home.packages = with pkgs; [
     htop
@@ -63,12 +84,4 @@
     enable = true;
   };
 
-  home.sessionVariables = {
-    MOZ_ENABLE_WAYLAND = "1";
-    NIXOS_OZONE_WL = "1";
-  };
-
-  home.sessionPath = [
-    "${config.home.homeDirectory}/.npm-global/bin"
-  ];
 }
