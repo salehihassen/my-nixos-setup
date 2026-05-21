@@ -187,6 +187,9 @@
     os-prober
     gparted
 
+    # Virtualization
+    inputs.compose2nix.packages.x86_64-linux.default
+
     # Dev
     uv
 
@@ -200,6 +203,7 @@
     tmux
     ripgrep
     imagemagick
+
 
     # Development
     pnpm
@@ -225,6 +229,7 @@
         }
       ];
     };
+    storageDriver = "btrfs";
   };
 
   # Helps Chromium/Electron apps prefer Wayland
