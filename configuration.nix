@@ -2,8 +2,6 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-# TODO: tmux, appimage (helium?), flatpak w/ wayland forced (zen?)
-
 
 { config, lib, pkgs, ... }:
 
@@ -209,6 +207,10 @@
     # Networking
     tailscale
   ];
+
+  # Enable AppImages
+  programs.appimage.enable = true;
+  programs.appimage.binfmt = true;
 
   # Helps Chromium/Electron apps prefer Wayland
   environment.sessionVariables = {
