@@ -3,7 +3,7 @@
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
 
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 {
   imports =
@@ -188,7 +188,9 @@
     gparted
 
     # Virtualization
-    inputs.compose2nix.packages.x86_64-linux.default
+    docker
+    docker-compose
+    inputs.compose2nix.packages.${pkgs.system}.default
 
     # Dev
     uv
@@ -289,7 +291,8 @@
       "nixcfg" # Enable modifying nixos configs
       "wheel" # Enable 'sudo' for the user
       "networkmanager" # Network mgmt
-    ]; # Enable ‘sudo’ for the user.
+      "docker" # Enable docker containers
+    ]; 
     packages = with pkgs; [
       tree
     ];
