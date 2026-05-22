@@ -32,6 +32,7 @@
 
         modules = [
           ./configuration.nix
+          ./hosts/j2.nix
           home-manager.nixosModules.home-manager 
           {
             home-manager.useGlobalPkgs = true;

@@ -14,13 +14,6 @@
   # Flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  # Allow unfree as needed
-  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-    "displaylink"
-    "evdi"
-  ];
-
-
   # BOOT , TODO migrate to separate module ====================================
 
   # Default, trying an alternative
