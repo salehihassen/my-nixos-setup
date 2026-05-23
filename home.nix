@@ -50,6 +50,7 @@
     unzip
     git
     nodejs_24
+    bubblewrap
   ];
 
   programs.tmux = {
