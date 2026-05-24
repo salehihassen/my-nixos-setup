@@ -51,6 +51,7 @@
     git
     nodejs_24
     bubblewrap
+    zed-editor
   ];
 
   programs.tmux = {
