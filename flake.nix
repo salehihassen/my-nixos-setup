@@ -1,5 +1,5 @@
 {
-  description = "j2 Niri + Noctalia daily driver";
+  description = "NixOS configs";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -18,31 +18,47 @@
       url = "github:aksiksi/compose2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
   };
-  
-  outputs = inputs@{ self, nixpkgs, noctalia, home-manager, compose2nix, ... }:
-    let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-    in {
-      nixosConfigurations.j2 = nixpkgs.lib.nixosSystem {
+
+  outputs = inputs@{
+    self,
+    nixpkgs,
+    home-manager,
+    ...
+  }:
+  let
+    system = "x86_64-linux";
+
+    mkHost = hostModule:
+      nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit inputs; };
+
+        specialArgs = {
+          inherit inputs;
+        };
 
         modules = [
           ./configuration.nix
-          ./hosts/j2.nix
-          home-manager.nixosModules.home-manager 
+          hostModule
+
+          home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
+
             home-manager.extraSpecialArgs = {
               inherit inputs;
             };
+
             home-manager.users.saleh = import ./home.nix;
           }
         ];
       };
-    }; 
+  in {
+    nixosConfigurations = {
+      j2 = mkHost ./hosts/j2.nix;
+      b1 = mkHost ./hosts/b1.nix;
+    };
+  };
 }
+
