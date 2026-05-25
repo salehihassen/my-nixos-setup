@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 # Unique setup for j2 laptop
 {
   # Networking
@@ -30,7 +30,7 @@
     enable = true;
     efiSupport = true;
     device = "nodev";
-    useOSProber = true;
+    useOSProber = lib.mkForce false;
     configurationLimit = 10;
   };
 
@@ -39,16 +39,21 @@
     efiSysMountPoint = "/boot/efi";
   };
 
-  # Extra boot entry for my PopOS partition
-  boot.loader.grub.extraEntries = ''
-    menuentry "Pop!_OS current" {
-      search --no-floppy --set=esp --file /EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz.efi
-      chainloader ($esp)/EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz.efi initrd=\EFI\Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9\initrd.img root=UUID=312e170d-932b-4e52-bbae-8564c41d00f9 ro quiet loglevel=0 systemd.show_status=false splash
+  # Pop!_OS maintains its own systemd-boot entries on the ESP. Chainload that
+  # known-good boot manager instead of trying to boot Pop kernels from GRUB.
+  boot.loader.grub.extraEntries = lib.mkForce ''
+    menuentry "Pop!_OS" {
+      insmod part_gpt
+      insmod fat
+      search --no-floppy --set=esp --file /EFI/systemd/systemd-bootx64.efi
+      chainloader ($esp)/EFI/systemd/systemd-bootx64.efi
     }
 
-    menuentry "Pop!_OS previous kernel" {
-      search --no-floppy --set=esp --file /EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz-previous.efi
-      chainloader ($esp)/EFI/Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9/vmlinuz-previous.efi initrd=\EFI\Pop_OS-312e170d-932b-4e52-bbae-8564c41d00f9\initrd.img-previous root=UUID=312e170d-932b-4e52-bbae-8564c41d00f9 ro quiet loglevel=0 systemd.show_status=false splash
+    menuentry "Windows Boot Manager" {
+      insmod part_gpt
+      insmod fat
+      search --no-floppy --set=esp --file /EFI/Microsoft/Boot/bootmgfw.efi
+      chainloader ($esp)/EFI/Microsoft/Boot/bootmgfw.efi
     }
   '';
 
