@@ -92,7 +92,13 @@
   # Wayland first login manager
   services.greetd.enable = true;
   # Graphical greetd greeter
-  programs.regreet.enable = true;
+  programs.regreet = {
+    enable = true;
+    settings.background = {
+      path = "${./assets/wallpapers/rocket-expedition.png}";
+      fit = "Cover";
+    };
+  };
   # Displaylink video driver
   services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
   systemd.services.dlm.wantedBy = [ "multi-user.target" ];
@@ -328,4 +334,3 @@
   system.stateVersion = "25.11"; # Did you read the comment?
 
 }
-

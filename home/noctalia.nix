@@ -1,9 +1,36 @@
-{ config, pkgs, inputs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
+let
+  wallpaperPath = "${config.home.homeDirectory}/.config/wallpapers/rocket-expedition.png";
+  wallpaperCache = pkgs.writeText "noctalia-wallpapers.json" (builtins.toJSON {
+    defaultWallpaper = wallpaperPath;
+    usedRandomWallpapers = {};
+    wallpapers =
+      builtins.listToAttrs (map (name: {
+        inherit name;
+        value = {
+          dark = wallpaperPath;
+          light = wallpaperPath;
+        };
+      }) [
+        "eDP-1"
+        "DP-1"
+        "DP-8"
+        "DP-9"
+        "DVI-I-1"
+        "DVI-I-2"
+      ]);
+  });
+in
 {
 
-  home.file.".config/wallpapers/traffic-blur.jpg".source = 
-    ../assets/wallpapers/traffic-blur.jpg;
+  home.file.".config/wallpapers/rocket-expedition.png".source =
+    ../assets/wallpapers/rocket-expedition.png;
+
+  home.activation.noctaliaWallpaperCache = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    mkdir -p "$HOME/.cache/noctalia"
+    install -m 0644 ${wallpaperCache} "$HOME/.cache/noctalia/wallpapers.json"
+  '';
 
   imports = [
     inputs.noctalia.homeModules.default
@@ -14,9 +41,9 @@
 
     settings = {
       wallpaper = {
-        enable = true;
-        image = "${config.home.homeDirectory}/.config/wallpapers/traffic-blur.jpg";
-        fillMode = "cover";
+        enabled = true;
+        directory = "${config.home.homeDirectory}/.config/wallpapers";
+        fillMode = "crop";
       };
       bar = {
         position = "top";
