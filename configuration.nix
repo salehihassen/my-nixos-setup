@@ -94,6 +94,7 @@
   # Graphical greetd greeter
   programs.regreet = {
     enable = true;
+    cageArgs = [ "-s" "-d" "-m" "last" ];
     settings.background = {
       path = "${./assets/wallpapers/rocket-expedition.png}";
       fit = "Cover";
@@ -110,6 +111,7 @@
     xwayland-satellite
     fuzzel
     swaybg
+    inputs.noctalia.packages.${pkgs.system}.default
 
     # Maybe will remove for niri desktop soon
     mako
@@ -167,6 +169,7 @@
 
     # Dev
     uv
+    postgresql_18
 
     # CLI tools
     git
