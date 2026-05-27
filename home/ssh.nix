@@ -21,9 +21,18 @@
         controlPath = "~/.ssh/master-%r@%n:%p";
         controlPersist = "no";
       };
-  
+
       "github.com" = {
         hostname = "github.com";
+        user = "git";
+        identityFile = "~/.ssh/id_ed25519";
+        identitiesOnly = true;
+  
+        # Cache passphrase in ssh-agent for 4 hours.
+        addKeysToAgent = "4h";
+      };
+      "codeberg.org" = {
+        hostname = "codeberg.org";
         user = "git";
         identityFile = "~/.ssh/id_ed25519";
         identitiesOnly = true;
