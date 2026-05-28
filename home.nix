@@ -52,6 +52,7 @@
     nodejs_24
     bubblewrap
     zed-editor
+    rclone
   ];
 
   programs.tmux = {
@@ -86,5 +87,8 @@
   programs.fuzzel = {
     enable = true;
   };
+
+  # TODO, if rclone/rclone.conf is present in the nixos configs (gitignored and excluded from repo), use it as rclone config?
+
 
 }
