@@ -113,9 +113,9 @@
     swaybg
     inputs.noctalia.packages.${pkgs.system}.default
 
-    # Maybe will remove for niri desktop soon
-    mako
-    waybar
+    # tmp niri desktop tools
+    # mako
+    # waybar
 
     # Docking and external devices
     displaylink
