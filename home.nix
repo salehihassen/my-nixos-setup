@@ -54,6 +54,8 @@
     bubblewrap
     zed-editor
     rclone
+    bind
+    openssl
   ];
 
   programs.tmux = {
