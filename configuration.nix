@@ -48,8 +48,10 @@
     efiSysMountPoint = "/boot/efi";
   };
 
-  boot.supportedFilesystems = [ "btrfs" ];
+  boot.supportedFilesystems = [ "btrfs" "vfat" "exfat" "ntfs" ];
 
+  services.udisks2.enable = true;
+  services.gvfs.enable = true;
   services.fstrim.enable = true;
 
   # NETWORKING =============================================================
@@ -77,6 +79,22 @@
   #};
   security.polkit.enable = true;
   services.tailscale.enable = true;
+  networking.nftables.enable = true;
+  networking.firewall = {
+    enable = true;
+    trustedInterfaces = [ config.services.tailscale.interfaceName ];
+    allowedUDPPorts = [ config.services.tailscale.port ];
+  };
+
+  # force tailscaled to use nft tables
+  # avoids "iptables-compat" translation layer issues
+  systemd.services.tailscaled.serviceConfig.Environment = [
+    "TS_DEBUG_FIREWALL_MODE=nftables"
+  ];
+
+  # optimization: prevent systemd from waiting for network online
+  systemd.network.wait-online.enable = false;
+  boot.initrd.systemd.network.wait-online.enable = false;
 
   # POWER =====================================================
   services.power-profiles-daemon.enable = true;
@@ -181,10 +199,6 @@
     tmux
     ripgrep
     imagemagick
-
-
-    # Development
-    pnpm
 
     # Networking
     tailscale

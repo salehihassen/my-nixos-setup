@@ -50,6 +50,7 @@
     unzip
     git
     nodejs_24
+    pnpm
     bubblewrap
     zed-editor
     rclone
