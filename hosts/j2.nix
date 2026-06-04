@@ -65,4 +65,9 @@
       "displaylink" # for docking station
       "evdi"
     ];
+
+  # AI
+  environment.systemPackages = with pkgs; [
+    ollama-vulkan
+  ];
 }
