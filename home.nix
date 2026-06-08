@@ -5,6 +5,7 @@
     #inputs.noctalia.homeModules.default
     ./home/noctalia.nix # Noctalia UIs
     ./home/ssh.nix # Ssh agent and ssh configs
+    inputs.zen-browser.homeModules.beta # For Zen browser
   ];
 
   home.username = "saleh";
@@ -89,6 +90,11 @@
 
   programs.fuzzel = {
     enable = true;
+  };
+
+  programs.zen-browser = {
+    enable = true;
+    setAsDefaultBrowser = true;
   };
 
   # TODO, if rclone/rclone.conf is present in the nixos configs (gitignored and excluded from repo), use it as rclone config?
