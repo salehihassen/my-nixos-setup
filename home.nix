@@ -25,7 +25,7 @@
   };
 
   programs.home-manager.enable = true;
-
+  programs.direnv.enable = true;
   # home.file.".config/wallpapers/traffic-blur.jpg".source =
   #  ../../assets/wallpapers/traffic-blur.jpg;
 
