@@ -138,7 +138,7 @@
     # Docking and external devices
     displaylink
 
-    # Termincal and clipboard screenshot basics
+    # Terminal and clipboard screenshot basics
     alacritty
     wl-clipboard
     grim
@@ -192,6 +192,7 @@
     # CLI tools
     git
     gh
+    btop
     vim
     wget
     curl
