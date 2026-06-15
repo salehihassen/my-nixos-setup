@@ -113,10 +113,6 @@
   programs.regreet = {
     enable = true;
     cageArgs = [ "-s" "-d" "-m" "last" ];
-    settings.background = {
-      path = "${./assets/wallpapers/rocket-expedition.png}";
-      fit = "Cover";
-    };
   };
   # Displaylink video driver
   services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
