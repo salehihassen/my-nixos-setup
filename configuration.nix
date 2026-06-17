@@ -196,6 +196,7 @@
     tmux
     ripgrep
     imagemagick
+    lsof
 
     # Networking
     tailscale
