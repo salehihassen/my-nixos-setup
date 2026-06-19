@@ -1,8 +1,13 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 # Unique setup for j2 laptop
 {
+  imports = [
+    ./j2-hardware.nix
+  ];
+
   # Networking
   networking.hostName = "j2";
+  hardware.bluetooth.enable = true;
 
   # BOOT , TODO migrate to separate module ====================================
 
@@ -39,6 +44,8 @@
     efiSysMountPoint = "/boot/efi";
   };
 
+  boot.supportedFilesystems = [ "btrfs" "vfat" "exfat" "ntfs" ];
+
   # Extra boot entry for my PopOS partition
   boot.loader.grub.extraEntries = ''
     menuentry "Pop!_OS current" {
@@ -55,9 +62,61 @@
   # Enable printing service
   services.printing.enable = true;
 
+  services.udisks2.enable = true;
+  services.gvfs.enable = true;
+  services.fstrim.enable = true;
+
+  # POWER =====================================================
+  services.power-profiles-daemon.enable = true;
+  powerManagement.enable = true;
+  services.upower.enable = true;
+
+  # DISPLAY / AUDIO / APPS / LOGIN  =================
+  # Niri tiling compositor
+  programs.niri.enable = true;
+  # Wayland first login manager
+  services.greetd.enable = true;
+  # Graphical greetd greeter
+  programs.regreet = {
+    enable = true;
+    cageArgs = [ "-s" "-d" "-m" "last" ];
+  };
+
   hardware.graphics.enable = true;
 
-  services.xserver.videoDrivers = [ "displaylink" ];
+  services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
+  systemd.services.dlm.wantedBy = [ "multi-user.target" ];
+
+  security.polkit.enable = true;
+
+  # Enable AppImages
+  programs.appimage.enable = true;
+  programs.appimage.binfmt = true;
+
+  # Helps Chromium/Electron apps prefer Wayland
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";
+  };
+
+  # Portals help file pickers and sandboxed apps
+  xdg.portal = {
+    enable = true;
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk
+    ];
+  };
+
+  # Audio
+  security.rtkit.enable = true;
+
+  services.pipewire = {
+    enable = true;
+    pulse.enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+  };
+
+  virtualisation.docker.storageDriver = "btrfs";
 
   # Allow unfree drivers as needed
   nixpkgs.config.allowUnfreePredicate = pkg:
@@ -68,6 +127,57 @@
 
   # AI
   environment.systemPackages = with pkgs; [
+    # Niri desktop basics
+    niri
+    xwayland-satellite
+    fuzzel
+    swaybg
+    inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default
+
+    # Docking and external devices
+    displaylink
+
+    # Terminal and clipboard screenshot basics
+    alacritty
+    wl-clipboard
+    grim
+    slurp
+    wezterm
+    ghostty
+
+    # Audio/brightness/control helpers
+    pamixer
+    pavucontrol
+    brightnessctl
+    playerctl
+
+    # File manager and tray/network tools
+    nautilus
+    networkmanagerapplet
+
+    # Auth / priv prompts for GUI apps
+    polkit
+    kdePackages.polkit-kde-agent-1
+
+    # Lock screen (not login manager)
+    swaylock
+
+    # Themes / icons so GTK apps do not look broken
+    adwaita-icon-theme
+    gnome-themes-extra
+
+    # Portals
+    xdg-desktop-portal
+    xdg-desktop-portal-gtk
+
+    # Browsers
+    chromium
+
+    # Boot / firmware tools
+    efibootmgr
+    os-prober
+    gparted
+
     ollama-vulkan
   ];
 }

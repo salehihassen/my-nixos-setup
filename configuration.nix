@@ -6,61 +6,14 @@
 { config, lib, pkgs, inputs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
-
   # Flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  # BOOT , TODO migrate to separate module ====================================
-
-  # Default, trying an alternative
-  # Use the systemd-boot EFI boot loader.
-  # boot.loader.systemd-boot.enable = true;
-  # boot.loader.efi.canTouchEfiVariables = true;
-
-  boot.initrd.luks.devices = {
-    cryptnix = {
-      device = "/dev/disk/by-uuid/e8c65ac8-b574-4bce-904a-4d6794c0b4c8";
-      allowDiscards = true;
-    };
-    cryptnixswap = {
-      device = "/dev/disk/by-uuid/040d1566-b5fb-4a6c-8b7d-21a64b56faba";
-      allowDiscards = true;
-    };
-  };
-  boot.resumeDevice = "/dev/mapper/cryptnixswap";
-
-  boot.loader.systemd-boot.enable = false;
-
-  boot.loader.grub = {
-    enable = true;
-    efiSupport = true;
-    device = "nodev";
-    useOSProber = true;
-    configurationLimit = 10;
-  };
-
-  boot.loader.efi = {
-    canTouchEfiVariables = true;
-    efiSysMountPoint = "/boot/efi";
-  };
-
-  boot.supportedFilesystems = [ "btrfs" "vfat" "exfat" "ntfs" ];
-
-  services.udisks2.enable = true;
-  services.gvfs.enable = true;
-  services.fstrim.enable = true;
 
   # NETWORKING =============================================================
 
   # networking.hostName = "nixos"; # Define your hostname.
   # Configure network connections interactively with nmcli or nmtui.
-  hardware.bluetooth.enable = true;
   networking.networkmanager.enable = true;
-  networking.hostName = "j2";
 
   services.openssh = {
     enable = true;
@@ -77,7 +30,6 @@
   #  enable = true;
   #  allowedTCPPorts = [ 22 ];
   #};
-  security.polkit.enable = true;
   services.tailscale.enable = true;
   networking.nftables.enable = true;
   networking.firewall = {
@@ -96,90 +48,11 @@
   systemd.network.wait-online.enable = false;
   boot.initrd.systemd.network.wait-online.enable = false;
 
-  # POWER =====================================================
-  services.power-profiles-daemon.enable = true;
-  powerManagement.enable = true;
-  services.upower.enable = true;
-
-  # DISPLAY / AUDIO / APPS / LOGIN  =================
-  # Enable the X11 windowing system.
-  # services.xserver.enable = true;
-
-  # Niri tiling compositor
-  programs.niri.enable = true;
-  # Wayland first login manager
-  services.greetd.enable = true;
-  # Graphical greetd greeter
-  programs.regreet = {
-    enable = true;
-    cageArgs = [ "-s" "-d" "-m" "last" ];
-  };
-  # Displaylink video driver
-  services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
-  systemd.services.dlm.wantedBy = [ "multi-user.target" ];
-
   environment.systemPackages = with pkgs; [
-
-    # Niri desktop basics
-    niri
-    xwayland-satellite
-    fuzzel
-    swaybg
-    inputs.noctalia.packages.${pkgs.system}.default
-
-    # tmp niri desktop tools
-    # mako
-    # waybar
-
-    # Docking and external devices
-    displaylink
-
-    # Terminal and clipboard screenshot basics
-    alacritty
-    wl-clipboard
-    grim
-    slurp
-    wezterm
-    ghostty
-
-    # Audio/brightness/control helpers
-    pamixer
-    pavucontrol
-    brightnessctl
-    playerctl
-
-    # File manager and tray/network tools
-    nautilus
-    networkmanagerapplet
-
-    # Auth / priv prompts for GUI apps
-    polkit
-    kdePackages.polkit-kde-agent-1
-    networkmanagerapplet
-
-    # Lock screen (not login manager)
-    swaylock
-
-    # Themes / icons so GTK apps do not look broken
-    adwaita-icon-theme
-    gnome-themes-extra
-
-    # Portals
-    xdg-desktop-portal
-    xdg-desktop-portal-gtk
-
-    # Browsers
-    chromium
-
-    # Boot / firmware tools
-    efibootmgr
-    os-prober
-    gparted
-
     # Virtualization
     docker
     docker-compose
-    inputs.compose2nix.packages.${pkgs.system}.default
+    inputs.compose2nix.packages.${pkgs.stdenv.hostPlatform.system}.default
 
     # Dev
     uv
@@ -202,10 +75,6 @@
     tailscale
   ];
 
-  # Enable AppImages
-  programs.appimage.enable = true;
-  programs.appimage.binfmt = true;
-
   # Enable Docker
   virtualisation.docker = {
     enable = true;
@@ -219,30 +88,6 @@
         }
       ];
     };
-    storageDriver = "btrfs";
-  };
-
-  # Helps Chromium/Electron apps prefer Wayland
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
-  };
-
-  # Portals help file pickers and sandboxed apps
-  xdg.portal = {
-    enable = true;
-    extraPortals = with pkgs; [
-      xdg-desktop-portal-gtk
-    ];
-  };
-
-  # Audio
-  security.rtkit.enable = true;
-
-  services.pipewire = {
-    enable = true;
-    pulse.enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
   };
 
   programs.git.enable = true;
