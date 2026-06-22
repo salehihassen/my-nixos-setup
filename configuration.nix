@@ -37,6 +37,10 @@
     trustedInterfaces = [ config.services.tailscale.interfaceName ];
     allowedUDPPorts = [ config.services.tailscale.port ];
   };
+  networking.firewall.checkReversePath = false;
+
+
+
 
   # force tailscaled to use nft tables
   # avoids "iptables-compat" translation layer issues

@@ -154,6 +154,8 @@
     # File manager and tray/network tools
     nautilus
     networkmanagerapplet
+    wireguard-tools 
+    protonvpn-gui
 
     # Auth / priv prompts for GUI apps
     polkit
