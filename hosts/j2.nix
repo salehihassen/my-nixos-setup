@@ -123,6 +123,7 @@
     builtins.elem (pkgs.lib.getName pkg) [
       "displaylink" # for docking station
       "evdi"
+      "steam-unwrapped"
     ];
 
   # AI
@@ -155,7 +156,7 @@
     nautilus
     networkmanagerapplet
     wireguard-tools 
-    protonvpn-gui
+    proton-vpn
 
     # Auth / priv prompts for GUI apps
     polkit

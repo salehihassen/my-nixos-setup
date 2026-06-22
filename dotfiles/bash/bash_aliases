@@ -24,7 +24,39 @@ git_current_branch() {
     printf ' (%s) ' "$branch"
 }
 
-export PS1='\n\[\033[1;32m\][\[\e]0;\u@\h: \W\a\]\u@\h:\W]\[\033[1;33m\]$(git_current_branch)\[\033[1;32m\]\$\[\033[0m\] '
+git_current_branch_short() {
+    local branch
+
+    branch=$(git branch --show-current 2>/dev/null)
+
+    if [[ -z "$branch" ]]; then
+        branch=$(git rev-parse --short HEAD 2>/dev/null)
+    fi
+
+    if [[ -z "$branch" ]]; then
+        branch="no-commits"
+    fi
+
+    printf ' (%.8s) ' "$branch"
+}
+
+# Get if dev shell is active
+function __dev_shell_prompt() {
+  if [ -n "$NIX_DEV_SHELL_NAME" ]; then
+    printf "[%s] " "$NIX_DEV_SHELL_NAME"
+  fi
+}
+
+__dev_shell_prompt_short() {
+    if [[ -n "$NIX_DEV_SHELL_NAME" ]]; then
+        printf '[%.8s] ' "$NIX_DEV_SHELL_NAME"
+    fi
+}
+
+export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@\h: \W\a\]\u@\h:\W]\[\033[1;33m\]$(git_current_branch_short)\[\033[1;32m\]\$\[\033[0m\] '
+
+# if I need an even shorter PS1
+# export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\]\W\[\033[1;33m\]$(git_current_branch_short)\[\033[0m\]\$ '
 
 alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
 alias co='codex-danger'
