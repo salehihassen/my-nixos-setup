@@ -57,6 +57,9 @@
     rclone
     bind
     openssl
+    wf-recorder
+    slurp
+    grim
   ];
 
   programs.tmux = {

@@ -13,76 +13,56 @@
 
   programs.noctalia = {
     enable = true;
+    systemd.enable = true;
 
     settings = {
       wallpaper = {
         enabled = true;
         directory = "${config.home.homeDirectory}/.config/wallpapers";
-        fillMode = "crop";
+        fill_mode = "crop";
       };
       bar = {
-        position = "top";
-        density = "default";
-
-        widgets = {
-          left = [
-            {
-              id = "ControlCenter";
-              useDistroLogo = true;
-            }
-
-            {
-              id = "SystemMonitor";
-
-              compactMode = false;
-              useMonospaceFont = true;
-              usePadding = true;
-
-              showCpuTemp = true;
-              showCpuUsage = true;
-
-              showMemoryUsage = true;
-              showMemoryAsPercent = true;
-
-              diskPath = "/";
-              showDiskUsage = true;
-              showDiskAvailable = true;
-              showDiskUsageAsPercent = true;
-
-              showCpuCores = false;
-              showCpuFreq = false;
-              showGpuTemp = false;
-              showLoadAverage = false;
-              showSwapUsage = false;
-              showNetworkStats = false;
-
-              iconColor = "none";
-              textColor = "none";
-            }
+        main = {
+          position = "top";
+          start = [
+            "control-center"
+            "cpu"
+            "temp"
+            "ram"
+            "disk"
           ];
-
           center = [
-            {
-              id = "Workspace";
-              hideUnoccupied = false;
-              labelMode = "none";
-            }
+            "workspaces"
           ];
-
-          right = [
-            {
-              id = "Network";
-            }
-            {
-              id = "Battery";
-              warningThreshold = 30;
-            }
-            {
-              id = "Clock";
-              formatHorizontal = "h:mm A";
-              useMonospacedFont = true;
-            }
+          end = [
+            "network"
+            "battery"
+            "clock"
           ];
+        };
+      };
+      battery = {
+        warning_threshold = 30;
+      };
+      shell = {
+        time_format = "{:%I:%M %p}";
+      };
+      widget = {
+        cpu = {
+          type = "sysmon";
+          stat = "cpu_usage";
+        };
+        temp = {
+          type = "sysmon";
+          stat = "cpu_temp";
+        };
+        ram = {
+          type = "sysmon";
+          stat = "ram_used";
+        };
+        disk = {
+          type = "sysmon";
+          stat = "disk_pct";
         };
       };
     };
