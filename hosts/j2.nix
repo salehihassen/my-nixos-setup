@@ -79,7 +79,7 @@
   # Graphical greetd greeter
   programs.regreet = {
     enable = true;
-    cageArgs = [ "-s" "-d" "-m" "last" ];
+    cageArgs = [ "-s" "-d" "-m" "extend" ];
   };
 
   hardware.graphics.enable = true;

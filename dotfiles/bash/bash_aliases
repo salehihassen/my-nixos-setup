@@ -1,6 +1,15 @@
 #
 # General development =============================
 
+
+vim() {
+  if command -v nvim >/dev/null 2>&1; then
+    nvim "$@"
+  else
+    command vim "$@"
+  fi
+}
+alias edit-aliases='vim /etc/nixos/dotfiles/bash/bash_aliases && source /etc/nixos/dotfiles/bash/bash_aliases'
 alias docker-ps='docker ps -a --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"'
 alias myip='curl ifconfig.me'
 alias zen='zen-beta'
@@ -85,3 +94,14 @@ alias n-switch="sudo nixos-rebuild switch --flake .#j2"
 
 # Download nixpkgs
 alias n-update="nix flake update" # use sudo if /etc/nixos not owned by user
+
+# Misc apps =======================================
+
+alias career-ops-codex="/home/saleh/apps/career-ops/scripts/start-codex-career-ops"
+alias career-ops-opencode="cd /home/saleh/apps/career-ops && opencode"
+alias career-ops="career-ops-codex"
+
+# Misc notes ==============================
+# wireplumber failing around ALSA device handling causing CPU to overheat?
+# Do `systemctl --user restart wireplumber`
+alias reset-wp="systemctl --user restart wireplumber"
