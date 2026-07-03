@@ -34,6 +34,8 @@ git_current_branch() {
 }
 
 git_current_branch_short() {
+    git rev-parse --git-dir >/dev/null 2>&1 || return 0
+
     local branch
 
     branch=$(git branch --show-current 2>/dev/null)
