@@ -60,6 +60,7 @@
     wf-recorder
     slurp
     grim
+    drawio
   ];
 
   programs.tmux = {
