@@ -90,136 +90,6 @@ confirm_disk() {
   [[ "$confirm" == "$disk" ]] || die "target disk confirmation did not match"
 }
 
-write_single_boot_script() {
-  local disk="$1"
-  local hostname="$2"
-  local username="$3"
-  local passphrase_name="$4"
-  local script="$ACTION_DIR/01-single-boot-destructive.sh"
-
-  cat > "$script" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-
-disk="$disk"
-hostname="$hostname"
-username="$username"
-mapper="$passphrase_name"
-
-echo "This will wipe \$disk and create a NixOS-only installation."
-read -r -p "Type WIPE \$disk to continue: " confirm
-if [[ "\$confirm" != "WIPE \$disk" ]]; then
-  echo "confirmation failed" >&2
-  exit 1
-fi
-
-swapoff --all || true
-umount -R /mnt 2>/dev/null || true
-cryptsetup close "\$mapper" 2>/dev/null || true
-
-wipefs -a "\$disk"
-sgdisk --zap-all "\$disk"
-parted --script "\$disk" \\
-  mklabel gpt \\
-  mkpart ESP fat32 1MiB 1025MiB \\
-  set 1 esp on \\
-  mkpart boot ext4 1025MiB 3073MiB \\
-  mkpart nixos 3073MiB -16GiB \\
-  mkpart swap linux-swap -16GiB 100%
-
-partprobe "\$disk"
-sleep 2
-
-efi="\${disk}1"
-boot="\${disk}2"
-rootpart="\${disk}3"
-swappart="\${disk}4"
-if [[ "\$disk" =~ (nvme|mmcblk|loop) ]]; then
-  efi="\${disk}p1"
-  boot="\${disk}p2"
-  rootpart="\${disk}p3"
-  swappart="\${disk}p4"
-fi
-
-mkfs.vfat -F 32 -n EFI "\$efi"
-mkfs.ext4 -F -L nixboot "\$boot"
-cryptsetup luksFormat "\$rootpart"
-cryptsetup open "\$rootpart" "\$mapper"
-mkfs.btrfs -f -L nixroot "/dev/mapper/\$mapper"
-mkswap -L nixswap "\$swappart"
-
-mount "/dev/mapper/\$mapper" /mnt
-btrfs subvolume create /mnt/@
-btrfs subvolume create /mnt/@home
-btrfs subvolume create /mnt/@nix
-btrfs subvolume create /mnt/@log
-btrfs subvolume create /mnt/@snapshots
-umount /mnt
-
-mount -o subvol=@ "/dev/mapper/\$mapper" /mnt
-mkdir -p /mnt/{home,nix,var/log,.snapshots,boot/efi}
-mount -o subvol=@home "/dev/mapper/\$mapper" /mnt/home
-mount -o subvol=@nix "/dev/mapper/\$mapper" /mnt/nix
-mount -o subvol=@log "/dev/mapper/\$mapper" /mnt/var/log
-mount -o subvol=@snapshots "/dev/mapper/\$mapper" /mnt/.snapshots
-mount "\$boot" /mnt/boot
-mkdir -p /mnt/boot/efi
-mount "\$efi" /mnt/boot/efi
-swapon "\$swappart"
-
-nixos-generate-config --root /mnt
-EOF
-
-  chmod +x "$script"
-  printf '%s\n' "$script"
-}
-
-write_multiboot_notes() {
-  local disk="$1"
-  local hostname="$2"
-  local username="$3"
-  local notes="$ACTION_DIR/01-multiboot-mount-commands.txt"
-
-  cat > "$notes" <<EOF
-Multiboot mode selected for $disk.
-
-This helper intentionally does not partition, resize, format, or mount existing
-OS partitions for you. Use a partitioning tool to create Linux partitions only
-in confirmed free space. Do not format Windows, existing Linux, recovery, or EFI
-partitions.
-
-After creating the target NixOS partitions, mount them under /mnt. Example shape:
-
-  sudo cryptsetup luksFormat /dev/<new-linux-root-partition>
-  sudo cryptsetup open /dev/<new-linux-root-partition> cryptnix
-  sudo mkfs.btrfs -f -L nixroot /dev/mapper/cryptnix
-  sudo mount /dev/mapper/cryptnix /mnt
-  sudo btrfs subvolume create /mnt/@
-  sudo btrfs subvolume create /mnt/@home
-  sudo btrfs subvolume create /mnt/@nix
-  sudo btrfs subvolume create /mnt/@log
-  sudo btrfs subvolume create /mnt/@snapshots
-  sudo umount /mnt
-  sudo mount -o subvol=@ /dev/mapper/cryptnix /mnt
-  sudo mkdir -p /mnt/{home,nix,var/log,.snapshots,boot/efi}
-  sudo mount -o subvol=@home /dev/mapper/cryptnix /mnt/home
-  sudo mount -o subvol=@nix /dev/mapper/cryptnix /mnt/nix
-  sudo mount -o subvol=@log /dev/mapper/cryptnix /mnt/var/log
-  sudo mount -o subvol=@snapshots /dev/mapper/cryptnix /mnt/.snapshots
-  sudo mount /dev/<existing-efi-partition> /mnt/boot/efi
-  sudo nixos-generate-config --root /mnt
-
-Existing EFI should only be mounted after confirming it is the correct ESP.
-Do not run mkfs.* against existing EFI or OS partitions in multiboot mode.
-
-Then rerun:
-
-  nixos-recovery-install --finish --hostname $hostname --username $username
-EOF
-
-  printf '%s\n' "$notes"
-}
-
 copy_repo_and_template() {
   local hostname="$1"
   local username="$2"
@@ -290,9 +160,12 @@ Usage:
   nixos-recovery-install
   nixos-recovery-install --finish --hostname <name> --username <user>
 
-The default flow inspects disks and writes operator-run scripts for partitioning
-and installation. Privileged disk writes are printed as sudo commands/scripts for
-manual execution.
+The default flow inspects disks and dispatches to mode-specific helpers.
+Privileged disk writes are printed as sudo commands for manual execution.
+
+Mode commands:
+  nixos-recovery-single-boot-destructive --disk <disk> --hostname <name> --username <user> --mapper <name>
+  nixos-recovery-multiboot --disk <disk> --hostname <name> --username <user>
 EOF
 }
 
@@ -343,22 +216,16 @@ main() {
 
   case "$mode" in
     single-boot-destructive)
-      local mapper script
+      local mapper
       mapper="$(prompt_nonempty "LUKS mapper name [example: cryptnix]: ")"
       validate_mapper_name "$mapper"
-      script="$(write_single_boot_script "$disk" "$hostname" "$username" "$mapper")"
-      printf '\nA destructive privileged disk setup script was written to:\n\n  %s\n\n' "$script"
-      printf 'Review it first. Run it externally with sudo only if you intend to wipe %s:\n\n' "$disk"
-      printf '  sudo bash %s\n\n' "$script"
+      printf '\nRun this externally with sudo only if you intend to wipe %s:\n\n' "$disk"
+      printf '  sudo nixos-recovery-single-boot-destructive --disk %s --hostname %s --username %s --mapper %s\n\n' "$disk" "$hostname" "$username" "$mapper"
       printf 'Then finish the repo/config install step:\n\n'
       printf '  nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"
       ;;
     multiboot)
-      local notes
-      notes="$(write_multiboot_notes "$disk" "$hostname" "$username")"
-      printf '\nMultiboot instructions were written to:\n\n  %s\n\n' "$notes"
-      printf 'Create and mount only new NixOS partitions, then run:\n\n'
-      printf '  nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"
+      nixos-recovery-multiboot --disk "$disk" --hostname "$hostname" --username "$username"
       ;;
   esac
 }
