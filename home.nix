@@ -32,6 +32,7 @@
   # home.file.".config/wallpapers/horizon.jpg".source =
   #   ../../assets/wallpapers/horizon.jpg;
   home.file.".bash_aliases".source = ./dotfiles/bash/bash_aliases;
+  xdg.configFile."niri/config.kdl".source = ./dotfiles/niri/config.kdl;
 
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
@@ -61,6 +62,7 @@
     slurp
     grim
     drawio
+    wakeonlan
   ];
 
   programs.tmux = {
