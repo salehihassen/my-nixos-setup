@@ -107,3 +107,9 @@ alias career-ops="career-ops-codex"
 # wireplumber failing around ALSA device handling causing CPU to overheat?
 # Do `systemctl --user restart wireplumber`
 alias reset-wp="systemctl --user restart wireplumber"
+
+# workaround loss of tmux bindings
+# `tmux detach` then `tmux a`
+# `printf '\033c'`
+# `reset`
+# `tmux refresh-client`
