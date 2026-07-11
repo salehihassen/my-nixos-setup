@@ -21,8 +21,9 @@ the command is needed and what it will affect.
 
 - Add a reusable new-machine template, preferably `templates/new-computer.nix`,
   modeled after `hosts/j2.nix` but without j2-specific disk UUIDs, Pop!_OS
-  entries, DisplayLink assumptions unless selected, or current-machine LUKS
-  devices.
+  entries, or current-machine LUKS devices. Include DisplayLink driver config
+  and the related unfree package allowlist only as commented-out examples, so
+  they are easy to enable later but disabled by default.
 - Add a recovery ISO flake output, for example
   `packages.x86_64-linux.recoveryIso`, built from a dedicated ISO config.
 - Add guided install tooling that:
