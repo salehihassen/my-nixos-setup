@@ -37,12 +37,12 @@
   let
     system = "x86_64-linux";
 
-    mkHost = hostModule:
+    mkHostFor = { hostModule, username ? "saleh" }:
       nixpkgs.lib.nixosSystem {
         inherit system;
 
         specialArgs = {
-          inherit inputs;
+          inherit inputs username;
         };
 
         modules = [
@@ -55,18 +55,36 @@
             home-manager.useUserPackages = true;
 
             home-manager.extraSpecialArgs = {
-              inherit inputs;
+              inherit inputs username;
             };
 
-            home-manager.users.saleh = import ./home.nix;
+            home-manager.users.${username} = import ./home.nix;
           }
         ];
       };
+
+    mkHost = hostModule:
+      mkHostFor {
+        inherit hostModule;
+      };
+
+    recoveryIso = nixpkgs.lib.nixosSystem {
+      inherit system;
+
+      specialArgs = {
+        inherit inputs self;
+      };
+
+      modules = [
+        ./iso/recovery.nix
+      ];
+    };
   in {
     nixosConfigurations = {
       j2 = mkHost ./hosts/j2.nix;
       b1 = mkHost ./hosts/b1.nix;
     };
+
+    packages.${system}.recoveryIso = recoveryIso.config.system.build.isoImage;
   };
 }
-

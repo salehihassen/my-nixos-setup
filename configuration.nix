@@ -3,7 +3,7 @@
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
 
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, inputs, username ? "saleh", ... }:
 
 {
   # Flakes
@@ -122,7 +122,7 @@
   ];
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.saleh = {
+  users.users.${username} = {
     isNormalUser = true;
     extraGroups = [
       "nixcfg" # Enable modifying nixos configs

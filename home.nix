@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }: 
+{ config, pkgs, inputs, username ? "saleh", ... }:
 
 {
   imports = [
@@ -8,8 +8,8 @@
     inputs.zen-browser.homeModules.beta # For Zen browser
   ];
 
-  home.username = "saleh";
-  home.homeDirectory = "/home/saleh";
+  home.username = username;
+  home.homeDirectory = "/home/${username}";
   home.stateVersion = "25.11";
 
   programs.bash = {
