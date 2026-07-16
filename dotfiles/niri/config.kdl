@@ -42,17 +42,17 @@ output "eDP-1" {
     scale 1
 }
 
-// main monitor docked at home
-// Keep this adjacent to eDP-1 so their logical regions do not overlap.
-output "DVI-I-1" {
+// main monitor docked at home, Acer
+// Match by EDID identity so dock connector renumbering does not change its position.
+output "Acer Technologies KB272 0x12505FA0" {
     mode "1920x1080@74.973"
     position x=1920 y=0
     scale 1
 }
 
-// periph monitor docked at home, dell
-// Keep this adjacent to DVI-I-1 so their logical regions do not overlap.
-output "DVI-I-2" {
+// periph monitor docked at home, Dell
+// Match by EDID identity so dock connector renumbering does not change its position.
+output "Dell Inc. DELL P2717H 662C1887M4GL" {
     mode "1920x1080@60.000"
     position x=3840 y=0
     scale 1

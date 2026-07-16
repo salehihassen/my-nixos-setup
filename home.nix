@@ -103,6 +103,13 @@
     setAsDefaultBrowser = true;
   };
 
+  services.mpd = {
+    enable = true;
+    musicDirectory = "/home/saleh/Music";
+    # Optional:
+    network.listenAddress = "any"; # if you want to allow non-localhost connections
+    network.startWhenNeeded = true; # systemd feature: only start MPD service upon connection to its socket
+  };
   # TODO, if rclone/rclone.conf is present in the nixos configs (gitignored and excluded from repo), use it as rclone config?
 
 

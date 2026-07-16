@@ -74,6 +74,7 @@
     ripgrep
     imagemagick
     lsof
+    pciutils
 
     # Networking
     tailscale
