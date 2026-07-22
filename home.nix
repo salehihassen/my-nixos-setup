@@ -63,10 +63,19 @@
     grim
     drawio
     wakeonlan
+    qbittorrent
+    xclip # Used by the tmux copy-mode binding.
   ];
 
   programs.tmux = {
     enable = true;
+    plugins = with pkgs.tmuxPlugins; [
+      sensible
+      resurrect
+      continuum
+    ];
+    # Keep tmux settings in portable, native tmux syntax.
+    extraConfig = builtins.readFile ./dotfiles/tmux.conf;
   };
 
   programs.git = {
