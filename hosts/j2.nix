@@ -124,6 +124,7 @@
       "displaylink" # for docking station
       "evdi"
       "steam-unwrapped"
+      "claude-code"
     ];
 
   # AI
