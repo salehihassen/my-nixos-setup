@@ -1,5 +1,7 @@
 
 
+include optional=true "experimental/protonvpn-toggle.kdl"
+
 prefer-no-csd // omit client side decorator
 //spawn-sh-at-startup "swaybg -i /home/$USER/.local/share/wallpapers/traffic-blur.jpg" 
 spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" "XDG_SESSION_TYPE=wayland" "XDG_SESSION_DESKTOP=niri"

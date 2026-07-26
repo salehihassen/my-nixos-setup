@@ -3,6 +3,7 @@
 {
   imports = [
     ./j2-hardware.nix
+    ../dotfiles/experimental/protonvpn-toggle.nix
   ];
 
   # Networking
@@ -156,8 +157,7 @@
     # File manager and tray/network tools
     nautilus
     networkmanagerapplet
-    wireguard-tools 
-    proton-vpn
+    wireguard-tools
 
     # Auth / priv prompts for GUI apps
     polkit
