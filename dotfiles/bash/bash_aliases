@@ -80,7 +80,8 @@ alias chrome-temp='chromium --user-data-dir="$(mktemp -d"'
 
 # NixOS =========================================
 
-alias n-build="sudo nixos-rebuild build --flake .#j2"
+alias n-build="sudo nixos-rebuild build --flake .#j2 --max-jobs 2 --cores 4"
+alias n-dry-build="sudo nixos-rebuild dry-build --flake .#j2"
 
 # check nixos config syntax
 alias n-check="nix config check"
@@ -92,10 +93,11 @@ alias n-boot="sudo nixos-rebuild boot --flake .#j2"
 alias n-test="sudo nixos-rebuild test --flake .#j2"
 
 # build, activate it, and make default boot
-alias n-switch="sudo nixos-rebuild switch --flake .#j2"
+alias n-switch="sudo nixos-rebuild switch --flake .#j2 --max-jobs 2 --cores 4"
 
 # Download nixpkgs
 alias n-update="nix flake update" # use sudo if /etc/nixos not owned by user
+alias n-update-subset="nix flake update nixpkgs home-manager"
 
 # Misc apps =======================================
 
