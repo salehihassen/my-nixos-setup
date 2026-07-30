@@ -43,6 +43,9 @@
         # Cache passphrase in ssh-agent for 4 hours.
         AddKeysToAgent = "4h";
       };
+      "c2" = {
+        User = "root";
+      };
     };
   };
 }
