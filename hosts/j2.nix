@@ -135,7 +135,6 @@
     xwayland-satellite
     fuzzel
     swaybg
-    inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default
 
     # Docking and external devices
     displaylink
@@ -151,8 +150,6 @@
     # Audio/brightness/control helpers
     pamixer
     pavucontrol
-    brightnessctl
-    playerctl
 
     # File manager and tray/network tools
     nautilus
@@ -162,9 +159,6 @@
     # Auth / priv prompts for GUI apps
     polkit
     kdePackages.polkit-kde-agent-1
-
-    # Lock screen (not login manager)
-    swaylock
 
     # Themes / icons so GTK apps do not look broken
     adwaita-icon-theme

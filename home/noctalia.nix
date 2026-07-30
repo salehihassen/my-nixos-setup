@@ -13,7 +13,8 @@
 
   programs.noctalia = {
     enable = true;
-    systemd.enable = true;
+    systemd.enable = false;
+    validateConfig = true;
 
     settings = {
       wallpaper = {
@@ -62,7 +63,7 @@
         };
         disk = {
           type = "sysmon";
-          stat = "disk_pct";
+          stat = "disk_used_pct";
         };
       };
     };

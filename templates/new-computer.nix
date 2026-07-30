@@ -112,8 +112,6 @@
 
     pamixer
     pavucontrol
-    brightnessctl
-    playerctl
 
     nautilus
     networkmanagerapplet
@@ -122,8 +120,6 @@
 
     polkit
     kdePackages.polkit-kde-agent-1
-
-    swaylock
 
     adwaita-icon-theme
     gnome-themes-extra
