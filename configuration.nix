@@ -48,9 +48,9 @@
 
     serviceConfig.Type = "oneshot";
 
-    script = ''
-      ${pkgs.tailscale}/bin/tailscale set --accept-dns=false
-    '';
+    #script = ''
+    #  ${pkgs.tailscale}/bin/tailscale set --accept-dns=false
+    #'';
   };
 
 
