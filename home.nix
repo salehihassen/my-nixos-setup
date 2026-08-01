@@ -65,7 +65,13 @@
     wakeonlan
     qbittorrent
     xclip # Used by the tmux copy-mode binding.
+    
+    # AI / Coding Harness
     claude-code
+
+    # Comms
+    discord
+
   ];
 
   programs.tmux = {

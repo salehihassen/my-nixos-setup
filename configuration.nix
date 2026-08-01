@@ -41,7 +41,17 @@
   };
   networking.firewall.checkReversePath = false;
 
+  systemd.services.tailscaled-autoconnect = {
+    after = [ "tailscaled.service" "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
 
+    serviceConfig.Type = "oneshot";
+
+    script = ''
+      ${pkgs.tailscale}/bin/tailscale set --accept-dns=false
+    '';
+  };
 
 
   # force tailscaled to use nft tables
