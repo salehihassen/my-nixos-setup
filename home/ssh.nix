@@ -8,6 +8,9 @@
 
     enableDefaultConfig = false;
 
+    # Machine-local host definitions live outside this public repository.
+    includes = [ "~/.ssh/config.local" ];
+
     settings = {
       "*" = {
         ForwardAgent = false;
