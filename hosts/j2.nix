@@ -126,6 +126,7 @@
       "evdi"
       "steam-unwrapped"
       "claude-code"
+      "discord"
     ];
 
   # AI
@@ -177,5 +178,8 @@
     gparted
 
     ollama-vulkan
+
+    # Comms
+    discord
   ];
 }

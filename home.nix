@@ -69,9 +69,6 @@
     # AI / Coding Harness
     claude-code
 
-    # Comms
-    discord
-
   ];
 
   programs.tmux = {
