@@ -15,7 +15,18 @@
 
   # networking.hostName = "nixos"; # Define your hostname.
   # Configure network connections interactively with nmcli or nmtui.
+  
   networking.networkmanager.enable = true;
+  services.resolved = {
+    enable = true;
+    # fallback if router provided dns is briefly unavailable
+    fallbackDns = [
+      "1.1.1.1"
+      "1.0.0.1"
+      "8.8.8.8"
+    ];
+  };
+  networking.networkmanager.dns = "systemd-resolved";
 
   services.openssh = {
     enable = true;
