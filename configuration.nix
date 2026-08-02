@@ -17,14 +17,19 @@
   # Configure network connections interactively with nmcli or nmtui.
   
   networking.networkmanager.enable = true;
+  #services.resolved.settings.Resolve.FallbackDNS
   services.resolved = {
     enable = true;
-    # fallback if router provided dns is briefly unavailable
-    fallbackDns = [
-      "1.1.1.1"
-      "1.0.0.1"
-      "8.8.8.8"
-    ];
+    settings = {
+        Resolve = {
+	  # fallback if router provided dns is briefly unavailable
+          fallbackDns = [
+            "1.1.1.1"
+            "1.0.0.1"
+            "8.8.8.8"
+          ];
+	};
+    };
   };
   networking.networkmanager.dns = "systemd-resolved";
 
