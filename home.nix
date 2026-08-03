@@ -65,6 +65,8 @@
     wakeonlan
     qbittorrent
     xclip # Used by the tmux copy-mode binding.
+    remmina
+    freerdp
     
     # AI / Coding Harness
     claude-code
