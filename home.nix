@@ -104,9 +104,30 @@
     enable = true;
     withRuby = false;
     withPython3 = false;
-    extraConfig = ''
-      set number relativenumber
-    '';
+
+    extraPackages = with pkgs; [
+      typescript-language-server
+    ];
+
+    plugins = [
+      pkgs.vimPlugins.nvim-lspconfig
+      (pkgs.vimPlugins.nvim-treesitter.withPlugins (p: with p; [
+        bash
+        javascript
+        json
+        lua
+        markdown
+        markdown_inline
+        nix
+        tsx
+        typescript
+        vim
+        vimdoc
+      ]))
+    ];
+
+    extraConfig = builtins.readFile ./dotfiles/neovim/init.vim;
+    initLua = builtins.readFile ./dotfiles/neovim/init.lua;
   };
 
   programs.fuzzel = {
