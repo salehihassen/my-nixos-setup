@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ config, pkgs, inputs, ... }:
 # Unique setup for j2 laptop
 {
   imports = [
@@ -8,6 +8,35 @@
 
   # Networking
   networking.hostName = "j2";
+
+  services.tailscale.enable = true;
+  networking.nftables.enable = true;
+  networking.firewall = {
+    enable = true;
+    trustedInterfaces = [ config.services.tailscale.interfaceName ];
+    allowedUDPPorts = [ config.services.tailscale.port ];
+    checkReversePath = false;
+  };
+
+  # Force tailscaled to use nftables and avoid iptables-compat translation issues.
+  systemd.services.tailscaled.serviceConfig.Environment = [
+    "TS_DEBUG_FIREWALL_MODE=nftables"
+  ];
+
+  /*
+  systemd.services.tailscaled-autoconnect = {
+    after = [ "tailscaled.service" "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig.Type = "oneshot";
+
+    script = ''
+      ${pkgs.tailscale}/bin/tailscale set --accept-dns=false
+    '';
+  };
+  */
+
   hardware.bluetooth.enable = true;
 
   # BOOT , TODO migrate to separate module ====================================
@@ -131,6 +160,9 @@
 
   # AI
   environment.systemPackages = with pkgs; [
+    # Networking
+    tailscale
+
     # Niri desktop basics
     niri
     xwayland-satellite

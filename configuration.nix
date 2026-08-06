@@ -3,7 +3,7 @@
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
 
-{ config, lib, pkgs, inputs, username ? "saleh", ... }:
+{ pkgs, inputs, username ? "saleh", ... }:
 
 {
   # Flakes
@@ -44,40 +44,6 @@
     };
   };
 
-  #networking.firewall = {
-  #  enable = true;
-  #  allowedTCPPorts = [ 22 ];
-  #};
-  services.tailscale.enable = true;
-  networking.nftables.enable = true;
-  networking.firewall = {
-    enable = true;
-    trustedInterfaces = [ config.services.tailscale.interfaceName ];
-    allowedUDPPorts = [ config.services.tailscale.port ];
-  };
-  networking.firewall.checkReversePath = false;
-
-  /*
-  systemd.services.tailscaled-autoconnect = {
-    after = [ "tailscaled.service" "network-online.target" ];
-    wants = [ "network-online.target" ];
-    wantedBy = [ "multi-user.target" ];
-
-    serviceConfig.Type = "oneshot";
-
-    script = ''
-      ${pkgs.tailscale}/bin/tailscale set --accept-dns=false
-    '';
-  };
-  */
-
-
-  # force tailscaled to use nft tables
-  # avoids "iptables-compat" translation layer issues
-  systemd.services.tailscaled.serviceConfig.Environment = [
-    "TS_DEBUG_FIREWALL_MODE=nftables"
-  ];
-
   # optimization: prevent systemd from waiting for network online
   systemd.network.wait-online.enable = false;
   boot.initrd.systemd.network.wait-online.enable = false;
@@ -106,8 +72,6 @@
     lsof
     pciutils
 
-    # Networking
-    tailscale
   ];
 
   # Enable Docker
