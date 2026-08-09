@@ -49,6 +49,9 @@
         time_format = "{:%I:%M %p}";
       };
       widget = {
+        clock = {
+          format = "{:%I:%M %p}";
+        };
         cpu = {
           type = "sysmon";
           stat = "cpu_usage";
