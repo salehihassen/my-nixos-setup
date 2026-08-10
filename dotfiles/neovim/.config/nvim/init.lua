@@ -1,3 +1,8 @@
+-- Keep Vimscript preferences editable alongside this file. Resolve it relative
+-- to init.lua because the Home Manager wrapper selects this file with `-u`.
+local config_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
+vim.cmd.source(config_dir .. "/init.vim")
+
 -- Enable Treesitter highlighting for the parsers installed through Nix.
 vim.api.nvim_create_autocmd("FileType", {
   pattern = {

@@ -183,14 +183,6 @@ in
   ];
 
   home-manager.users.${username} = {
-    xdg.configFile."niri/experimental/protonvpn-toggle.kdl".text = ''
-      binds {
-          Mod+Ctrl+V repeat=false hotkey-overlay-title="Toggle Proton VPN" {
-              spawn "protonvpn-toggle";
-          }
-      }
-    '';
-
     xdg.desktopEntries."proton.vpn.app.gtk" = {
       name = "Proton VPN";
       comment = "Proton VPN GUI client";

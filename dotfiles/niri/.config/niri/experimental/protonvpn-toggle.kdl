@@ -1,0 +1,5 @@
+binds {
+    Mod+Ctrl+V repeat=false hotkey-overlay-title="Toggle Proton VPN" {
+        spawn "protonvpn-toggle";
+    }
+}

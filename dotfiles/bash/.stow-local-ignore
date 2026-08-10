@@ -1,0 +1,6 @@
+# Never let Stow manage private, machine-local shell secrets.
+(^|/)\.bash_secrets$
+(^|/)bash_secrets$
+
+# This repository utility is stored beside the Bash package but is not a dotfile.
+(^|/)network-diagnostics\.sh$

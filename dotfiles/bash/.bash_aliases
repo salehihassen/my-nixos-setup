@@ -9,7 +9,7 @@ vim() {
     command vim "$@"
   fi
 }
-alias edit-aliases='vim /etc/nixos/dotfiles/bash/bash_aliases && source /etc/nixos/dotfiles/bash/bash_aliases'
+alias edit-aliases='vim /etc/nixos/dotfiles/bash/.bash_aliases && source /etc/nixos/dotfiles/bash/.bash_aliases'
 alias docker-ps='docker ps -a --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"'
 alias myip='curl ifconfig.me'
 alias zen='zen-beta'
@@ -94,6 +94,11 @@ alias n-test="sudo nixos-rebuild test --flake .#j2"
 
 # build, activate it, and make default boot
 alias n-switch="sudo nixos-rebuild switch --flake .#j2 --max-jobs 2 --cores 4"
+
+# Reconcile the live home-directory links without rebuilding NixOS.
+alias dotfiles-stow='/etc/nixos/scripts/stow-dotfiles.sh'
+alias dotfiles-stow-dry-run='/etc/nixos/scripts/stow-dotfiles.sh --dry-run'
+alias dotfiles-unstow='/etc/nixos/scripts/stow-dotfiles.sh --delete'
 
 # Download nixpkgs
 alias n-update="nix flake update" # use sudo if /etc/nixos not owned by user

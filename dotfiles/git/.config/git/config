@@ -1,0 +1,9 @@
+[init]
+	defaultBranch = main
+
+[safe]
+	directory = /etc/nixos
+
+[user]
+	email =
+	name = Saleh Hassen

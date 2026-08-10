@@ -1,0 +1,35 @@
+[bar.main]
+center = ["workspaces"]
+end = ["network", "battery", "clock"]
+position = "top"
+start = ["control-center", "cpu", "temp", "ram", "disk"]
+
+[battery]
+warning_threshold = 30
+
+[shell]
+time_format = "{:%I:%M %p}"
+
+[wallpaper]
+directory = "/home/saleh/.config/wallpapers"
+enabled = true
+fill_mode = "crop"
+
+[widget.clock]
+format = "{:%I:%M %p}"
+
+[widget.cpu]
+stat = "cpu_usage"
+type = "sysmon"
+
+[widget.disk]
+stat = "disk_used_pct"
+type = "sysmon"
+
+[widget.ram]
+stat = "ram_used"
+type = "sysmon"
+
+[widget.temp]
+stat = "cpu_temp"
+type = "sysmon"

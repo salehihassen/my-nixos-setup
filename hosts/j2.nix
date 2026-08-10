@@ -3,7 +3,7 @@
 {
   imports = [
     ./j2-hardware.nix
-    ../dotfiles/experimental/protonvpn-toggle.nix
+    ../home/protonvpn-toggle.nix
   ];
 
   # Networking

@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, username ? "saleh", ... }:
+{ config, lib, pkgs, inputs, username ? "saleh", ... }:
 
 {
   imports = [
@@ -12,27 +12,16 @@
   home.homeDirectory = "/home/${username}";
   home.stateVersion = "25.11";
 
-  programs.bash = {
-    enable = true;
-
-    bashrcExtra = ''
-      if [ -f "$HOME/.bash_secrets" ]; then
-        . "$HOME/.bash_secrets"
-      fi
-
-      source ~/.bash_aliases
-    '';
-  };
-
   programs.home-manager.enable = true;
   programs.direnv.enable = true;
-  # home.file.".config/wallpapers/traffic-blur.jpg".source =
-  #  ../../assets/wallpapers/traffic-blur.jpg;
 
-  # home.file.".config/wallpapers/horizon.jpg".source =
-  #   ../../assets/wallpapers/horizon.jpg;
-  home.file.".bash_aliases".source = ./dotfiles/bash/bash_aliases;
-  xdg.configFile."niri/config.kdl".source = ./dotfiles/niri/config.kdl;
+  # Home Manager removes links from the previous generation first, then Stow
+  # reconciles the editable files kept under /etc/nixos/dotfiles.
+  home.activation.stowDotfiles = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    export HOME=${lib.escapeShellArg config.home.homeDirectory}
+    export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.stow ]}:$PATH
+    ${./scripts/stow-dotfiles.sh}
+  '';
 
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
@@ -45,6 +34,12 @@
   ];
 
   home.packages = with pkgs; [
+    stow
+    bash-completion
+    tmux
+    tmuxPlugins.sensible
+    tmuxPlugins.resurrect
+    tmuxPlugins.continuum
     htop
     ripgrep
     fd
@@ -72,29 +67,6 @@
     claude-code
 
   ];
-
-  programs.tmux = {
-    enable = true;
-    plugins = with pkgs.tmuxPlugins; [
-      sensible
-      resurrect
-      continuum
-    ];
-    # Keep tmux settings in portable, native tmux syntax.
-    extraConfig = builtins.readFile ./dotfiles/tmux.conf;
-  };
-
-  programs.git = {
-    enable = true;
-    settings.user = {
-      email = "";
-      name = "Saleh Hassen";
-    };
-    settings = {
-      init.defaultBranch = "main";
-      safe.directory = "/etc/nixos";
-    };
-  };
 
   programs.ghostty = {
     enable = true;
@@ -126,8 +98,15 @@
       ]))
     ];
 
-    extraConfig = builtins.readFile ./dotfiles/neovim/init.vim;
-    initLua = builtins.readFile ./dotfiles/neovim/init.lua;
+    # Plugins and the wrapped package stay declarative. Stow supplies init.lua
+    # and init.vim, so Home Manager must not create $XDG_CONFIG_HOME/nvim/init.lua.
+    sideloadInitLua = true;
+    # Selecting init.lua explicitly avoids Neovim's automatic-discovery warning
+    # when both init.lua and the sourced init.vim are present.
+    extraWrapperArgs = [
+      "--add-flags"
+      "-u ${config.xdg.configHome}/nvim/init.lua"
+    ];
   };
 
   programs.fuzzel = {
