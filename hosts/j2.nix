@@ -101,9 +101,16 @@
   powerManagement.enable = true;
   services.upower.enable = true;
 
+  # The BlackSwan AP's 6 GHz BSSID repeatedly fails authentication and can
+  # leave this MT7922 unable to authenticate with any band after a failed roam.
+  # Stable per-band BSSID pinning lives in NetworkManager's connection profiles;
+  # keep Wi-Fi power saving off as a second guard against mt7921e radio stalls.
+  networking.networkmanager.wifi.powersave = false;
+
   # The MediaTek MT7922 can leave mt7921e unable to scan or authenticate
-  # after a failed roam. Reloading the module restores it; disabling the
-  # driver's PCIe ASPM path prevents that low-power link state from wedging.
+  # after a failed roam. Reloading the module restores it. Keep PCIe ASPM
+  # disabled as an additional mitigation, though it does not prevent every
+  # failed-roam stall on this machine.
   boot.extraModprobeConfig = ''
     options mt7921e disable_aspm=1
   '';
