@@ -115,6 +115,9 @@ alias career-ops="career-ops-codex"
 # Do `systemctl --user restart wireplumber`
 alias reset-wp="systemctl --user restart wireplumber"
 
+# Recover the MediaTek MT7922 if mt7921e stops scanning or associating.
+alias wifi-workaround='sudo modprobe -r mt7921e && sudo modprobe mt7921e && sleep 3 && nmcli device wifi rescan ifname wlp2s0 && nmcli -f SSID,SIGNAL,SECURITY device wifi list ifname wlp2s0'
+
 # workaround loss of tmux bindings
 # `tmux detach` then `tmux a`
 # `printf '\033c'`

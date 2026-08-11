@@ -101,6 +101,13 @@
   powerManagement.enable = true;
   services.upower.enable = true;
 
+  # The MediaTek MT7922 can leave mt7921e unable to scan or authenticate
+  # after a failed roam. Reloading the module restores it; disabling the
+  # driver's PCIe ASPM path prevents that low-power link state from wedging.
+  boot.extraModprobeConfig = ''
+    options mt7921e disable_aspm=1
+  '';
+
   # DISPLAY / AUDIO / APPS / LOGIN  =================
   # Niri tiling compositor
   programs.niri.enable = true;
