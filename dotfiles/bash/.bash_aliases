@@ -71,12 +71,14 @@ export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@
 
 alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
 alias co='codex-danger'
+alias last-cost-co='uv run python /etc/nixos/scripts/codex-last-cost.py'
+alias last-cost-pi='uv run python /etc/nixos/scripts/pi-last-cost.py'
 
 # Browsing ===================================
 
 # temp profile browsing for choem to avoid needing to manually
 # override security policies on a persistent chrome profile
-alias chrome-temp='chromium --user-data-dir="$(mktemp -d"'
+alias workaround-tmp-chromium='chromium --user-data-dir="$(mktemp -d)"'
 
 # NixOS =========================================
 
@@ -113,10 +115,10 @@ alias career-ops="career-ops-codex"
 # Misc notes ==============================
 # wireplumber failing around ALSA device handling causing CPU to overheat?
 # Do `systemctl --user restart wireplumber`
-alias reset-wp="systemctl --user restart wireplumber"
+alias workaround-wp="systemctl --user restart wireplumber"
 
 # Recover the MediaTek MT7922 if mt7921e stops scanning or associating.
-alias wifi-workaround='sudo modprobe -r mt7921e && sudo modprobe mt7921e && sleep 3 && nmcli device wifi rescan ifname wlp2s0 && nmcli -f SSID,SIGNAL,SECURITY device wifi list ifname wlp2s0'
+alias workaround-wifi='sudo modprobe -r mt7921e && sudo modprobe mt7921e && sleep 3 && nmcli device wifi rescan ifname wlp2s0 && nmcli -f SSID,SIGNAL,SECURITY device wifi list ifname wlp2s0'
 
 # workaround loss of tmux bindings
 # `tmux detach` then `tmux a`
