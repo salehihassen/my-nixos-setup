@@ -19,7 +19,7 @@ flake.nix
 └── packages.x86_64-linux.recoveryIso
 ```
 
-The ownership boundary is deliberate:
+The ownership boundary is:
 
 - **NixOS** owns system services, users, hardware, boot, and system packages.
 - **Home Manager** owns user packages and generated integrations.
