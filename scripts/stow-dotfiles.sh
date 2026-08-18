@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-readonly source_dir="/etc/nixos/dotfiles"
+script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly repo_dir="$(realpath "$script_dir/..")"
+readonly source_dir="$repo_dir/dotfiles"
 readonly target_dir="${HOME:-}"
 readonly -a packages=(
   bash

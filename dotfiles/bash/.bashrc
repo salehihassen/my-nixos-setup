@@ -18,10 +18,15 @@ shopt -s extglob
 shopt -s globstar
 shopt -s checkjobs
 
-bash_completion="/etc/profiles/per-user/${USER}/share/bash-completion/bash_completion"
-if [[ ! -v BASH_COMPLETION_VERSINFO && -r "$bash_completion" ]]; then
-  . "$bash_completion"
-fi
+for bash_completion in \
+  "/etc/profiles/per-user/${USER}/share/bash-completion/bash_completion" \
+  "$HOME/.nix-profile/share/bash-completion/bash_completion"
+do
+  if [[ ! -v BASH_COMPLETION_VERSINFO && -r "$bash_completion" ]]; then
+    . "$bash_completion"
+    break
+  fi
+done
 unset bash_completion
 
 if [[ -n "${GHOSTTY_RESOURCES_DIR:-}" ]]; then

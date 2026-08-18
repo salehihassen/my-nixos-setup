@@ -169,11 +169,15 @@
       "evdi"
       "steam-unwrapped"
       "claude-code"
+      "docker-sbx"
       "discord"
     ];
 
-  # AI
   environment.systemPackages = with pkgs; [
+    # AI
+    claude-code
+    docker-sbx
+
     # Networking
     tailscale
 

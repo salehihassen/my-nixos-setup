@@ -94,7 +94,6 @@
   #     "displaylink"
   #     "evdi"
   #     "steam-unwrapped"
-  #     "claude-code"
   #   ];
 
   environment.systemPackages = with pkgs; [

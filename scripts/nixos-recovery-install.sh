@@ -100,9 +100,19 @@ copy_repo_and_template() {
   [[ -d "$REPO_SOURCE" ]] || die "repo source not found at $REPO_SOURCE"
 
   mkdir -p /mnt/etc/nixos
-  rsync -a --delete --exclude result --exclude .git "$REPO_SOURCE"/ /mnt/etc/nixos/
+  # Keep the hardware file generated for this target. The embedded repository
+  # may contain a hardware-configuration.nix from the machine that built the
+  # ISO, and copying it here would make the new host unsafe to boot.
+  rsync -a --delete \
+    --exclude result \
+    --exclude .git \
+    --exclude /hardware-configuration.nix \
+    --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
+    "$REPO_SOURCE"/ /mnt/etc/nixos/
   mkdir -p /mnt/etc/nixos/hosts
-  cp /mnt/etc/nixos/hardware-configuration.nix "/mnt/etc/nixos/hosts/$hostname-hardware.nix"
+  install -m 0644 \
+    /mnt/etc/nixos/hardware-configuration.nix \
+    "/mnt/etc/nixos/hosts/$hostname-hardware.nix"
   cp /mnt/etc/nixos/templates/new-computer.nix "/mnt/etc/nixos/hosts/$hostname.nix"
 
   sed -i \
@@ -123,8 +133,10 @@ set -euo pipefail
 
 cd /mnt/etc/nixos
 nixos-install --flake ".#$hostname"
-echo "Set the target user password after install:"
-echo "  passwd $username"
+nixos-enter --root /mnt -c 'chown -R $username:nixcfg /etc/nixos'
+nixos-enter --root /mnt -c 'chmod -R u+rwX,g+rwX /etc/nixos'
+echo "Set the password for target user $username:"
+nixos-enter --root /mnt -c 'passwd $username'
 EOF
 
   chmod +x "$finish"
@@ -133,8 +145,7 @@ EOF
   printf 'A final privileged install script was written to:\n\n  %s\n\n' "$finish"
   printf 'Run it externally with sudo because it installs the bootloader, writes the target system, and changes the mounted target OS:\n\n'
   printf '  sudo bash %s\n\n' "$finish"
-  printf 'After nixos-install completes, run this in the target or via nixos-enter to set the password:\n\n'
-  printf '  passwd %s\n\n' "$username"
+  printf 'The script also makes /etc/nixos editable by %s and prompts for that target user password.\n\n' "$username"
 }
 
 finish_existing_mount() {
@@ -158,7 +169,7 @@ usage() {
   cat <<'EOF'
 Usage:
   nixos-recovery-install
-  nixos-recovery-install --finish --hostname <name> --username <user>
+  sudo nixos-recovery-install --finish --hostname <name> --username <user>
 
 The default flow inspects disks and dispatches to mode-specific helpers.
 Privileged disk writes are printed as sudo commands for manual execution.
@@ -179,6 +190,9 @@ main() {
   fi
 
   if [[ "${1:-}" == "--finish" ]]; then
+    if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+      die "run --finish with sudo because it writes the mounted target under /mnt"
+    fi
     shift
     local hostname=""
     local username=""
@@ -222,7 +236,7 @@ main() {
       printf '\nRun this externally with sudo only if you intend to wipe %s:\n\n' "$disk"
       printf '  sudo nixos-recovery-single-boot-destructive --disk %s --hostname %s --username %s --mapper %s\n\n' "$disk" "$hostname" "$username" "$mapper"
       printf 'Then finish the repo/config install step:\n\n'
-      printf '  nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"
+      printf '  sudo nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"
       ;;
     multiboot)
       nixos-recovery-multiboot --disk "$disk" --hostname "$hostname" --username "$username"

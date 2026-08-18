@@ -36,12 +36,16 @@
   let
     system = "x86_64-linux";
 
-    mkHostFor = { hostModule, username ? "saleh" }:
+    mkHostFor = {
+      hostModule,
+      username ? "saleh",
+      dotfilesRoot ? "/etc/nixos",
+    }:
       nixpkgs.lib.nixosSystem {
         inherit system;
 
         specialArgs = {
-          inherit inputs username;
+          inherit inputs username dotfilesRoot;
         };
 
         modules = [
@@ -54,7 +58,7 @@
             home-manager.useUserPackages = true;
 
             home-manager.extraSpecialArgs = {
-              inherit inputs username;
+              inherit inputs username dotfilesRoot;
             };
 
             home-manager.users.${username} = import ./home.nix;
@@ -65,6 +69,28 @@
     mkHost = hostModule:
       mkHostFor {
         inherit hostModule;
+      };
+
+    mkStandaloneHome = {
+      username,
+      homeDirectory,
+      dotfilesRoot,
+      system ? "x86_64-linux",
+    }:
+      home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages.${system};
+
+        extraSpecialArgs = {
+          inherit inputs username homeDirectory dotfilesRoot;
+        };
+
+        modules = [
+          ./home/portable.nix
+          {
+            home.homeDirectory = homeDirectory;
+            targets.genericLinux.enable = true;
+          }
+        ];
       };
 
     recoveryIso = nixpkgs.lib.nixosSystem {
@@ -79,11 +105,20 @@
       ];
     };
   in {
+    lib.mkStandaloneHome = mkStandaloneHome;
+    homeModules.portable = ./home/portable.nix;
+
     nixosConfigurations = {
       j2 = mkHost ./hosts/j2.nix;
       b1 = mkHost ./hosts/b1.nix;
     };
 
     packages.${system}.recoveryIso = recoveryIso.config.system.build.isoImage;
+
+    checks.${system}.portable-home = (mkStandaloneHome {
+      username = "portable";
+      homeDirectory = "/home/portable";
+      dotfilesRoot = "/opt/dotfiles";
+    }).activationPackage;
   };
 }

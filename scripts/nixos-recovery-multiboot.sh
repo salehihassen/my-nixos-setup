@@ -104,9 +104,9 @@ Do not run mkfs.* against existing EFI or OS partitions in multiboot mode.
 
 Then rerun:
 
-  nixos-recovery-install --finish --hostname $hostname --username $username
+  sudo nixos-recovery-install --finish --hostname $hostname --username $username
 EOF
 
 printf '\nMultiboot instructions were written to:\n\n  %s\n\n' "$notes"
 printf 'Create and mount only new NixOS partitions, then run:\n\n'
-printf '  nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"
+printf '  sudo nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"

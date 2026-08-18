@@ -144,4 +144,4 @@ swapon "$swappart"
 nixos-generate-config --root /mnt
 
 printf '\nDisk setup complete. Finish the install with:\n\n'
-printf '  nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"
+printf '  sudo nixos-recovery-install --finish --hostname %s --username %s\n\n' "$hostname" "$username"

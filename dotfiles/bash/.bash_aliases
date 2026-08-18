@@ -9,7 +9,10 @@ vim() {
     command vim "$@"
   fi
 }
-alias edit-aliases='vim /etc/nixos/dotfiles/bash/.bash_aliases && source /etc/nixos/dotfiles/bash/.bash_aliases'
+edit-aliases() {
+  local root="${DOTFILES_ROOT:-/etc/nixos}"
+  vim "$root/dotfiles/bash/.bash_aliases" && source "$root/dotfiles/bash/.bash_aliases"
+}
 alias docker-ps='docker ps -a --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"'
 alias myip='curl ifconfig.me'
 alias zen='zen-beta'
@@ -71,8 +74,13 @@ export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@
 
 alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
 alias co='codex-danger'
-alias last-cost-co='uv run python /etc/nixos/scripts/codex-last-cost.py'
-alias last-cost-pi='uv run python /etc/nixos/scripts/pi-last-cost.py'
+last-cost-co() {
+  uv run python "${DOTFILES_ROOT:-/etc/nixos}/scripts/codex-last-cost.py" "$@"
+}
+
+last-cost-pi() {
+  uv run python "${DOTFILES_ROOT:-/etc/nixos}/scripts/pi-last-cost.py" "$@"
+}
 
 # Browsing ===================================
 
@@ -98,9 +106,17 @@ alias n-test="sudo nixos-rebuild test --flake .#j2"
 alias n-switch="sudo nixos-rebuild switch --flake .#j2 --max-jobs 2 --cores 4"
 
 # Reconcile the live home-directory links without rebuilding NixOS.
-alias dotfiles-stow='/etc/nixos/scripts/stow-dotfiles.sh'
-alias dotfiles-stow-dry-run='/etc/nixos/scripts/stow-dotfiles.sh --dry-run'
-alias dotfiles-unstow='/etc/nixos/scripts/stow-dotfiles.sh --delete'
+dotfiles-stow() {
+  "${DOTFILES_ROOT:-/etc/nixos}/scripts/stow-dotfiles.sh" "$@"
+}
+
+dotfiles-stow-dry-run() {
+  "${DOTFILES_ROOT:-/etc/nixos}/scripts/stow-dotfiles.sh" --dry-run "$@"
+}
+
+dotfiles-unstow() {
+  "${DOTFILES_ROOT:-/etc/nixos}/scripts/stow-dotfiles.sh" --delete "$@"
+}
 
 # Download nixpkgs
 alias n-update="nix flake update" # use sudo if /etc/nixos not owned by user

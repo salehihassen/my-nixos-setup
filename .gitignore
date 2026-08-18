@@ -24,5 +24,5 @@ bash_secrets
 *.bak
 *.backup
 *.before-home-manager
-result/
+result
 result-recovery-iso/

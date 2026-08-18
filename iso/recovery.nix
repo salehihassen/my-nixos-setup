@@ -1,4 +1,4 @@
-{ config, lib, pkgs, inputs, self, ... }:
+{ lib, pkgs, inputs, self, ... }:
 
 let
   repoSource = lib.cleanSourceWith {
@@ -15,7 +15,7 @@ in
     "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
   ];
 
-  image.fileName = lib.mkDefault "nixos-recovery-${config.system.nixos.label}-${pkgs.stdenv.hostPlatform.system}.iso";
+  isoImage.edition = lib.mkForce "recovery";
 
   networking.hostName = "nixos-recovery";
   networking.networkmanager.enable = true;
