@@ -23,7 +23,7 @@
     settings = {
         Resolve = {
 	  # fallback if router provided dns is briefly unavailable
-          fallbackDns = [
+          FallbackDNS = [
             "1.1.1.1"
             "1.0.0.1"
             "8.8.8.8"

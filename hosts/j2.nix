@@ -9,7 +9,21 @@
   # Networking
   networking.hostName = "j2";
 
-  services.tailscale.enable = true;
+  services.tailscale = {
+    enable = true;
+
+    # Keep MagicDNS enabled declaratively.  This also repairs the persisted
+    # preference if it is ever changed manually.
+    extraSetFlags = [ "--accept-dns=true" ];
+  };
+
+  # SSH access to these two core machines must not depend on the
+  # Tailscale/systemd-resolved integration being healthy.  Tailscale IPv4
+  # addresses are stable for the lifetime of a node.
+  networking.hosts = {
+    "100.105.0.11" = [ "c2" ];
+    "100.105.0.2" = [ "c3" ];
+  };
   networking.nftables.enable = true;
   networking.firewall = {
     enable = true;
