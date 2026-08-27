@@ -205,6 +205,8 @@ binds {
         spawn "noctalia" "msg" "session" "lock";
     }
     Mod+E hotkey-overlay-title="Open File Manager" { spawn "nautilus"; }
+    Mod+Apostrophe hotkey-overlay-title="Open Zen browser" { spawn "zen-beta"; }
+    Mod+Shift+Apostrophe hotkey-overlay-title="Open Chromium browser" { spawn "chromium"; }
     Mod+N repeat=false hotkey-overlay-title="Toggle notification history" {
         spawn "noctalia" "msg" "panel-toggle" "control-center" "notifications";
     }

@@ -76,7 +76,7 @@ alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
 alias opencode-danger='opencode --agent --auto-approve'
 alias co='codex-danger'
 alias oc='opencode-danger'
-
+alias cc='claude --dangerously-skip-permissions'
 last-cost-co() {
   uv run python "${DOTFILES_ROOT:-/etc/nixos}/scripts/codex-last-cost.py" "$@"
 }
