@@ -139,6 +139,62 @@ alias workaround-wp="systemctl --user restart wireplumber"
 # Recover the MediaTek MT7922 if mt7921e stops scanning or associating.
 alias workaround-wifi='sudo modprobe -r mt7921e && sudo modprobe mt7921e && sleep 3 && nmcli device wifi rescan ifname wlp2s0 && nmcli -f SSID,SIGNAL,SECURITY device wifi list ifname wlp2s0'
 
+# Keep one active Wi-Fi and Ethernet link connected; switch route priority.
+net-prefer() {
+  local wifi_device eth_device wifi_profile eth_profile
+  local wifi_metric eth_metric target="${1:-status}"
+
+  wifi_device=$(nmcli -t --escape no -f DEVICE,TYPE,STATE device status \
+    | awk -F: '$2 == "wifi" && $3 == "connected" { print $1 }')
+  eth_device=$(nmcli -t --escape no -f DEVICE,TYPE,STATE device status \
+    | awk -F: '$2 == "ethernet" && $3 == "connected" { print $1 }')
+
+  if [[ -z "$wifi_device" || "$wifi_device" == *$'\n'* \
+    || -z "$eth_device" || "$eth_device" == *$'\n'* ]]; then
+    printf 'Exactly one Wi-Fi and one Ethernet device must be connected.\n' >&2
+    return 1
+  fi
+
+  wifi_profile=$(nmcli -g GENERAL.CONNECTION device show "$wifi_device") || return
+  eth_profile=$(nmcli -g GENERAL.CONNECTION device show "$eth_device") || return
+
+  if [[ "$target" == "toggle" ]]; then
+    if ip -4 route get 1.1.1.1 | grep -q "dev $eth_device"; then
+      target="wifi"
+    else
+      target="ethernet"
+    fi
+  fi
+
+  case "$target" in
+    wifi)  wifi_metric=100; eth_metric=600 ;;
+    eth|ethernet) target="ethernet"; wifi_metric=600; eth_metric=100 ;;
+    status)
+      ip -4 route get 1.1.1.1
+      return
+      ;;
+    *) printf 'Usage: net-prefer {wifi|ethernet|toggle|status}\n' >&2; return 2 ;;
+  esac
+
+  nmcli connection modify "$wifi_profile" \
+    ipv4.route-metric "$wifi_metric" ipv6.route-metric "$wifi_metric" || return
+  nmcli connection modify "$eth_profile" \
+    ipv4.route-metric "$eth_metric" ipv6.route-metric "$eth_metric" || return
+  # Reactivate one at a time so NetworkManager refreshes same-subnet routes;
+  # the other link remains available throughout the switch.
+  if [[ "$target" == "wifi" ]]; then
+    nmcli connection up "$eth_profile" ifname "$eth_device" >/dev/null || return
+    nmcli connection up "$wifi_profile" ifname "$wifi_device" >/dev/null || return
+  else
+    nmcli connection up "$wifi_profile" ifname "$wifi_device" >/dev/null || return
+    nmcli connection up "$eth_profile" ifname "$eth_device" >/dev/null || return
+  fi
+
+  printf 'Preferred path: %s\n' "$target"
+  ip -4 route get 1.1.1.1
+}
+alias net-toggle='net-prefer toggle'
+
 # workaround loss of tmux bindings
 # `tmux detach` then `tmux a`
 # `printf '\033c'`

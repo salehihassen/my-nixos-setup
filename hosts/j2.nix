@@ -23,6 +23,7 @@
   networking.hosts = {
     "100.105.0.11" = [ "c2" ];
     "100.105.0.2" = [ "c3" ];
+    "100.105.0.4" = [ "u2" ];
   };
   networking.nftables.enable = true;
   networking.firewall = {
@@ -115,10 +116,8 @@
   powerManagement.enable = true;
   services.upower.enable = true;
 
-  # The BlackSwan AP's 6 GHz BSSID repeatedly fails authentication and can
-  # leave this MT7922 unable to authenticate with any band after a failed roam.
-  # Stable per-band BSSID pinning lives in NetworkManager's connection profiles;
-  # keep Wi-Fi power saving off as a second guard against mt7921e radio stalls.
+  # Keep Wi-Fi power saving off as a guard against mt7921e radio stalls during
+  # reassociation. NetworkManager profiles roam by SSID unless a BSSID is set.
   networking.networkmanager.wifi.powersave = false;
 
   # The MediaTek MT7922 can leave mt7921e unable to scan or authenticate

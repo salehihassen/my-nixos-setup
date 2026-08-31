@@ -367,8 +367,8 @@ binds {
     Mod+Shift+Equal { set-window-height "+10%"; }
 
     // Move the focused window between the floating and the tiling layout.
-    Mod+V { toggle-window-floating; }
-    Mod+Shift+V { switch-focus-between-floating-and-tiling; }
+    Mod+V hotkey-overlay-title="Toggle focused window floating/tiling" { toggle-window-floating; }
+    Mod+Shift+V hotkey-overlay-title="Togle focus between floating and tiling"{ switch-focus-between-floating-and-tiling; }
 
     // Toggle tabbed column display mode.
     // Windows in this column will appear as vertical tabs,
