@@ -38,6 +38,7 @@
 
     mkHostFor = {
       hostModule,
+      homeModules ? [ ./home.nix ],
       username ? "saleh",
       dotfilesRoot ? "/etc/nixos",
     }:
@@ -61,7 +62,7 @@
               inherit inputs username dotfilesRoot;
             };
 
-            home-manager.users.${username} = import ./home.nix;
+            home-manager.users.${username}.imports = homeModules;
           }
         ];
       };
