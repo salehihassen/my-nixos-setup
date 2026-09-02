@@ -22,6 +22,7 @@
     qbittorrent
     remmina
     freerdp
+    kdePackages.kcalc
   ];
 
   programs.ghostty = {
