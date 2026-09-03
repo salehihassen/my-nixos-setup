@@ -12,9 +12,10 @@ flake.nix
 │   ├── configuration.nix          shared NixOS services and packages
 │   ├── hosts/<host>.nix           machine-specific policy
 │   ├── hosts/<host>-hardware.nix  generated disks and hardware
-│   └── home.nix
+│   └── Home Manager modules
 │       ├── home/portable.nix      shared CLI development environment
-│       └── desktop applications and services
+│       ├── home/desktop.nix       reusable desktop applications and services
+│       └── home/<host>.nix        per-host user applications
 ├── lib.mkStandaloneHome           portable Home Manager on non-NixOS Linux
 └── packages.x86_64-linux.recoveryIso
 ```
@@ -45,8 +46,8 @@ activating it on another machine:
    rg '/home/saleh|username ? "saleh"' .
    ```
 
-   In particular, review the MPD music directory in `home.nix`, Noctalia and
-   wallpaper paths, aliases, and personal application commands.
+   In particular, review the MPD music directory in `home/desktop.nix`,
+   Noctalia and wallpaper paths, aliases, and personal application commands.
 5. Review the timezone, bootloader, graphics, power management, and desktop
    choices. The new-machine template enables a Niri desktop and GRUB by default.
 6. Enable optional unfree packages only on the host that needs them. Claude Code

@@ -38,7 +38,7 @@
 
     mkHostFor = {
       hostModule,
-      homeModules ? [ ./home.nix ],
+      homeModules ? [ ./home/portable.nix ],
       username ? "saleh",
       dotfilesRoot ? "/etc/nixos",
     }:
@@ -108,9 +108,17 @@
   in {
     lib.mkStandaloneHome = mkStandaloneHome;
     homeModules.portable = ./home/portable.nix;
+    homeModules.desktop = ./home/desktop.nix;
 
     nixosConfigurations = {
-      j2 = mkHost ./hosts/j2.nix;
+      j2 = mkHostFor {
+        hostModule = ./hosts/j2.nix;
+        homeModules = [
+          ./home/portable.nix
+          ./home/desktop.nix
+          ./home/j2.nix
+        ];
+      };
       b1 = mkHost ./hosts/b1.nix;
     };
 

@@ -150,11 +150,6 @@
   programs.appimage.enable = true;
   programs.appimage.binfmt = true;
 
-  # Helps Chromium/Electron apps prefer Wayland
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
-  };
-
   # Portals help file pickers and sandboxed apps
   xdg.portal = {
     enable = true;
@@ -197,27 +192,11 @@
     # Niri desktop basics
     niri
     xwayland-satellite
-    fuzzel
-    swaybg
 
     # Docking and external devices
     displaylink
 
-    # Terminal and clipboard screenshot basics
-    alacritty
-    wl-clipboard
-    grim
-    slurp
-    wezterm
-    ghostty
-
-    # Audio/brightness/control helpers
-    pamixer
-    pavucontrol
-
-    # File manager and tray/network tools
-    nautilus
-    networkmanagerapplet
+    # Network administration tools
     wireguard-tools
 
     # Auth / priv prompts for GUI apps
@@ -232,17 +211,11 @@
     xdg-desktop-portal
     xdg-desktop-portal-gtk
 
-    # Browsers
-    chromium
-
     # Boot / firmware tools
     efibootmgr
     os-prober
     gparted
 
     ollama-vulkan
-
-    # Comms
-    discord
   ];
 }
