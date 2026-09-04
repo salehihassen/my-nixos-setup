@@ -16,9 +16,19 @@ flake.nix
 │       ├── home/portable.nix      shared CLI development environment
 │       ├── home/desktop.nix       reusable desktop applications and services
 │       └── home/<host>.nix        per-host user applications
+├── homeModules.portable               reusable portable Home Manager module
+├── homeModules.desktop                reusable desktop Home Manager module
 ├── lib.mkStandaloneHome           portable Home Manager on non-NixOS Linux
+├── checks.x86_64-linux.portable-home  standalone profile evaluation check
 └── packages.x86_64-linux.recoveryIso
 ```
+
+`mkHostFor` integrates Home Manager into every NixOS host. Its default profile
+contains only `home/portable.nix`; desktop hosts must opt into the desktop module
+explicitly. `j2` composes portable, desktop, and `home/j2.nix`, while `b1`
+currently receives only portable. Home Manager uses the host's Nixpkgs package
+set, so host-level package policy such as `j2`'s unfree allowlist also applies to
+its Home Manager packages.
 
 The ownership boundary is:
 
@@ -126,10 +136,22 @@ nixosConfigurations = {
   # Existing hosts...
   laptop2 = mkHostFor {
     hostModule = ./hosts/laptop2.nix;
+    homeModules = [
+      ./home/portable.nix
+      ./home/desktop.nix
+    ];
     username = "your-user";
   };
 };
 ```
+
+Omit `homeModules` for a portable CLI-only profile. For applications or
+preferences unique to the new machine, create `home/laptop2.nix` and append it
+to the list. The copied host module should retain hardware, services, desktop
+session infrastructure, and administrative packages; place ordinary user
+applications in the Home Manager modules. The current template still includes a
+self-contained system-wide desktop package baseline, so remove entries that are
+already supplied by `home/desktop.nix` while tailoring the copied host module.
 
 If the editable checkout is not `/etc/nixos`, also set an absolute
 `dotfilesRoot`. Track the new files, build safely, and only then switch:

@@ -55,6 +55,7 @@
     ripgrep
     fd
     jq
+    ffmpeg
     unzip
     git
     curl
