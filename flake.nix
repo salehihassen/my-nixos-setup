@@ -109,6 +109,7 @@
     lib.mkStandaloneHome = mkStandaloneHome;
     homeModules.portable = ./home/portable.nix;
     homeModules.desktop = ./home/desktop.nix;
+    homeModules.av-editor = ./home/av-editor.nix;
 
     nixosConfigurations = {
       j2 = mkHostFor {
@@ -116,6 +117,7 @@
         homeModules = [
           ./home/portable.nix
           ./home/desktop.nix
+          ./home/av-editor.nix
           ./home/j2.nix
         ];
       };

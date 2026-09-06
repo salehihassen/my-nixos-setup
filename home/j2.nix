@@ -14,6 +14,7 @@
     pamixer
     pavucontrol
     nautilus
+    gimp
     networkmanagerapplet
   ];
 }
