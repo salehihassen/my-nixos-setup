@@ -91,6 +91,10 @@ last-cost-pi() {
 # override security policies on a persistent chrome profile
 alias workaround-tmp-chromium='chromium --user-data-dir="$(mktemp -d)"'
 
+# restart noctalia shell if panel / etc is misbehaving.
+alias workaround-noctalia='pkill -TERM -f "(^|/)noctalia$" 2>/dev/null || true; sleep 1;
+  noctalia --daemon'
+
 # NixOS =========================================
 
 alias n-build="sudo nixos-rebuild build --flake .#j2 --max-jobs 2 --cores 4"

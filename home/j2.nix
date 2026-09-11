@@ -6,6 +6,9 @@
     chromium
     discord
 
+    # Backups
+    borgbackup
+
     # Terminals and desktop helpers
     alacritty
     wezterm
