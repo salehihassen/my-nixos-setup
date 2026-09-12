@@ -9,6 +9,7 @@ readonly target_dir="${HOME:-}"
 readonly -a packages=(
   bash
   git
+  misc-scripts
   neovim
   niri
   noctalia

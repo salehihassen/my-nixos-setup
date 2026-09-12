@@ -23,7 +23,13 @@
     kdePackages.kcalc
   ];
 
-  programs.ghostty.enable = true;
+  programs.ghostty = {
+    enable = true;
+    settings = {
+      theme = "light:Builtin Light,dark:Builtin Dark";
+      window-theme = "system";
+    };
+  };
   programs.fuzzel.enable = true;
 
   programs.zen-browser = {

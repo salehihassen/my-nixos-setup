@@ -7,6 +7,9 @@ start = ["control-center", "cpu", "temp", "ram", "disk"]
 [battery]
 warning_threshold = 30
 
+[hooks]
+theme_mode_changed = "$HOME/noctalia-sync-appearance \"$NOCTALIA_THEME_MODE\""
+
 [shell]
 time_format = "{:%I:%M %p}"
 

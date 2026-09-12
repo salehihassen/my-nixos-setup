@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  printf 'Usage: %s [light|dark]\n' "${0##*/}"
+}
+
+if (( $# > 1 )); then
+  usage >&2
+  exit 2
+fi
+
+noctalia_bin="$(command -v noctalia)"
+noctalia_bin="$(readlink -f -- "$noctalia_bin")"
+noctalia_root="${noctalia_bin%/bin/noctalia}"
+apply_script="$noctalia_root/share/noctalia/assets/templates/gtk/apply.sh"
+
+if [[ ! -f "$apply_script" ]]; then
+  printf 'Noctalia appearance helper not found: %s\n' "$apply_script" >&2
+  exit 1
+fi
+
+mode="${1:-}"
+if [[ -z "$mode" ]]; then
+  # Niri can start this command before Noctalia has finished opening its IPC
+  # socket. Retry briefly so the login-time state is still synchronized.
+  for _ in {1..50}; do
+    if mode="$($noctalia_bin msg theme-mode-get 2>/dev/null)"; then
+      break
+    fi
+    mode=""
+    sleep 0.1
+  done
+fi
+
+case "$mode" in
+  light|dark) ;;
+  *)
+    printf 'Unable to resolve Noctalia theme mode: %s\n' "${mode:-<empty>}" >&2
+    exit 1
+    ;;
+esac
+
+exec bash "$apply_script" --appearance-only "$mode"
