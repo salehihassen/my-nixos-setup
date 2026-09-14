@@ -1,0 +1,7 @@
+# Ghostty follows the desktop light/dark preference published by Noctalia.
+theme = light:Atom One Light,dark:Ghostty Default Dark
+window-theme = system
+
+# Alternatives:
+# theme = light:Builtin Light,dark:Builtin Dark
+# theme = light:Catppuccin Latte,dark:Catppuccin Mocha

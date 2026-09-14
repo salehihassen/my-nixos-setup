@@ -38,9 +38,9 @@ The ownership boundary is:
 - **Machine-local state** such as passwords, SSH keys, browser profiles,
   `.bash_secrets`, and rclone credentials stays outside Git.
 
-For example, Stow owns the editable tmux configuration while Home Manager
-generates `.config/tmux/nix-plugins.conf` with pinned paths for Sensible,
-Resurrect, and Continuum.
+For example, Stow owns the editable Ghostty and tmux configurations while Home
+Manager installs Ghostty and generates `.config/tmux/nix-plugins.conf` with
+pinned paths for Sensible, Resurrect, and Continuum.
 
 ## Make this configuration yours
 

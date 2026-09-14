@@ -23,13 +23,8 @@
     kdePackages.kcalc
   ];
 
-  programs.ghostty = {
-    enable = true;
-    settings = {
-      theme = "light:Builtin Light,dark:Builtin Dark";
-      window-theme = "system";
-    };
-  };
+  # Ghostty's editable preferences are managed by GNU Stow.
+  programs.ghostty.enable = true;
   programs.fuzzel.enable = true;
 
   programs.zen-browser = {
