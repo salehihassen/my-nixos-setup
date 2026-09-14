@@ -11,6 +11,7 @@
 
     # Keyboard firmware
     qmk
+    dos2unix
 
     # Terminals and desktop helpers
     alacritty

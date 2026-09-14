@@ -138,7 +138,7 @@
   # Wayland first login manager
   services.greetd.enable = true;
   # Graphical greetd greeter
-  programs.regreet = {
+  services.displayManager.regreet = {
     enable = true;
     cageArgs = [ "-s" "-d" "-m" "extend" ];
   };
