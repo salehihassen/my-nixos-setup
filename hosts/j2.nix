@@ -54,6 +54,10 @@
 
   hardware.bluetooth.enable = true;
 
+  # Let the Home Manager-installed QMK CLI flash supported keyboards without
+  # requiring root.
+  hardware.keyboard.qmk.enable = true;
+
   # BOOT , TODO migrate to separate module ====================================
 
   # Default, trying an alternative

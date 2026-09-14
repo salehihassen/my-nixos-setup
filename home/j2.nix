@@ -9,6 +9,9 @@
     # Backups
     borgbackup
 
+    # Keyboard firmware
+    qmk
+
     # Terminals and desktop helpers
     alacritty
     wezterm
