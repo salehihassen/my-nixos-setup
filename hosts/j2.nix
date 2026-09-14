@@ -183,6 +183,7 @@
       "claude-code"
       "docker-sbx"
       "discord"
+      "discord-unwrapped"
     ];
 
   environment.systemPackages = with pkgs; [
