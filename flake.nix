@@ -110,6 +110,7 @@
     homeModules.portable = ./home/portable.nix;
     homeModules.desktop = ./home/desktop.nix;
     homeModules.av-editor = ./home/av-editor.nix;
+    homeModules.hardware-design = ./home/hardware-design.nix;
 
     nixosConfigurations = {
       j2 = mkHostFor {
@@ -118,6 +119,7 @@
           ./home/portable.nix
           ./home/desktop.nix
           ./home/av-editor.nix
+          ./home/hardware-design.nix
           ./home/j2.nix
         ];
       };
