@@ -9,6 +9,7 @@
 
   networking.hostName = lib.mkDefault "new-computer";
   hardware.bluetooth.enable = lib.mkDefault true;
+  services.automatic-timezoned.enable = lib.mkDefault true;
 
   boot.loader.systemd-boot.enable = lib.mkDefault false;
   boot.loader.grub = {

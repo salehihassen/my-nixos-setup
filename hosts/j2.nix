@@ -8,6 +8,7 @@
 
   # Networking
   networking.hostName = "j2";
+  services.automatic-timezoned.enable = true;
 
   services.tailscale = {
     enable = true;

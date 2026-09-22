@@ -100,8 +100,9 @@
   # Enable CUPS to print documents.
   # services.printing.enable = true;
 
-  # EST Timezone
-  time.timeZone = "America/New_York";
+  # Default for stationary hosts; roaming hosts may override this with
+  # automatic-timezoned.
+  time.timeZone = pkgs.lib.mkDefault "America/New_York";
   # Keep Linux using UTC hardware clock.
   time.hardwareClockInLocalTime = false;
   # Usually enabled by default, but explicit is fine.
