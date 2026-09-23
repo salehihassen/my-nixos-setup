@@ -133,6 +133,12 @@
     options mt7921e disable_aspm=1
   '';
 
+  # STORAGE ================================
+  services.smartd = {
+    enable = true;
+    autodetect = true;
+  }
+
   # DISPLAY / AUDIO / APPS / LOGIN  =================
   # Niri tiling compositor
   programs.niri.enable = true;
