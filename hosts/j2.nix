@@ -137,7 +137,7 @@
   services.smartd = {
     enable = true;
     autodetect = true;
-  }
+  };
 
   # DISPLAY / AUDIO / APPS / LOGIN  =================
   # Niri tiling compositor
@@ -207,6 +207,7 @@
 
     # Docking and external devices
     displaylink
+    usbutils
 
     # Network administration tools
     wireguard-tools
