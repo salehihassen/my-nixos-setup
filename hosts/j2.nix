@@ -194,7 +194,7 @@
     ];
 
   environment.systemPackages = with pkgs; [
-    # AI
+    # AI and sandboxing
     claude-code
     docker-sbx
 
@@ -228,6 +228,7 @@
     efibootmgr
     os-prober
     gparted
+    smartmontools
 
     ollama-vulkan
   ];
