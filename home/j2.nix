@@ -2,6 +2,8 @@
 
 {
   home.packages = with pkgs; [
+    home-assistant-cli
+
     # Browsers and communication
     chromium
     discord

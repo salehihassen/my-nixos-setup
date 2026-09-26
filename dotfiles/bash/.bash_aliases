@@ -73,6 +73,7 @@ export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@
 # export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\]\W\[\033[1;33m\]$(git_current_branch_short)\[\033[0m\]\$ '
 
 alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
+alias codex-custom='codex --yolo --profile codex-custom'
 alias opencode-danger='opencode --agent --auto-approve'
 alias co='codex-danger'
 alias oc='opencode-danger'
@@ -125,9 +126,9 @@ dotfiles-unstow() {
   "${DOTFILES_ROOT:-/etc/nixos}/scripts/stow-dotfiles.sh" --delete "$@"
 }
 
-# Download nixpkgs
+# Update flake inputs; build j2 without activating it.
 alias n-update="nix flake update" # use sudo if /etc/nixos not owned by user
-alias n-update-subset="nix flake update nixpkgs home-manager"
+alias n-update-home="nix flake update nixpkgs home-manager && nix build '.#nixosConfigurations.j2.config.system.build.toplevel' --no-link --max-jobs 2 --cores 4"
 
 # Misc apps =======================================
 
