@@ -6,6 +6,16 @@
     ../home/protonvpn-toggle.nix
   ];
 
+  # Overlays for PRs in flight ===========================================
+  # TODO once merged, remove the below
+  nixpkgs.overlays = [
+    (final: _prev: {
+      displaylink = final.callPackage
+        (inputs.displaylinkSrc.outPath + "/pkgs/os-specific/linux/displaylink/default.nix")
+        { inherit (final.linuxPackages) evdi; };
+    })
+  ];
+
   # Networking
   networking.hostName = "j2";
   services.automatic-timezoned.enable = true;

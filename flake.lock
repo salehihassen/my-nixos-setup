@@ -21,6 +21,23 @@
         "type": "github"
       }
     },
+    "displaylinkSrc": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790457008,
+        "narHash": "sha256-LEft4j73xXkwr+ApUCNLMboNrRaMQgzhC3ydE7TRs24=",
+        "owner": "salehihassen",
+        "repo": "nixpkgs",
+        "rev": "edd273db0c3211fabdc6b646ff3abd73c90ef7b3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "salehihassen",
+        "repo": "nixpkgs",
+        "rev": "edd273db0c3211fabdc6b646ff3abd73c90ef7b3",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1652776076,
@@ -151,6 +168,7 @@
     "root": {
       "inputs": {
         "compose2nix": "compose2nix",
+        "displaylinkSrc": "displaylinkSrc",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "noctalia": "noctalia",

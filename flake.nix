@@ -25,6 +25,11 @@
         home-manager.follows = "home-manager";
       };
     };
+
+    displaylinkSrc = {
+      url = "github:salehihassen/nixpkgs/edd273db0c3211fabdc6b646ff3abd73c90ef7b3";
+      flake = false;
+    };
   };
 
   outputs = inputs@{
