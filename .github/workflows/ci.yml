@@ -1,0 +1,21 @@
+name: Nix flake checks (per-template)
+
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    # once a week (midnight UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-j2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31
+      - run: nix build '.#nixosConfigurations.j2.config.system.build.toplevel' --no-link
