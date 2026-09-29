@@ -18,4 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
+      - name: Import DisplayLink source ZIP
+        # requireFile needs this exact name and hash in the runner's Nix store.
+        run: |
+          nix-prefetch-url --name displaylink-630.zip \
+            'https://www.synaptics.com/sites/default/files/exe_files/2026-06/DisplayLink%20USB%20Graphics%20Software%20for%20Ubuntu6.3-EXE.zip' \
+            1670rhm39pqkmfy8kawwx3c79w7y6rd1pkhm698hq1i7fmn8asbj
       - run: nix build '.#nixosConfigurations.j2.config.system.build.toplevel' --no-link
