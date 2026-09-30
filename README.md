@@ -1,8 +1,24 @@
 # NixOS configuration
 
-This flake builds complete NixOS hosts, a portable Home Manager CLI profile, and
-a custom recovery ISO. It targets x86_64 Linux; the NixOS host template and
-recovery installer assume a UEFI machine.
+This repository manages `j2`, my daily-driver NixOS laptop, and provides modules
+to reuse on other machines. It uses flakes to pin dependencies, Home Manager to
+manage the user environment, and GNU Stow to link editable dotfiles.
+
+The current NixOS hosts and recovery ISO target `x86_64-linux` (Intel/AMD 64-bit
+Linux). The standalone Home Manager helper accepts a `system` argument, but
+other architectures have not been validated here. The desktop host template and
+recovery installer assume UEFI; VPS boot requirements depend on the provider.
+
+| Target | What to reuse | Current status |
+| --- | --- | --- |
+| J2 laptop | `hosts/j2.nix` and its Home Manager profiles | Daily-driver configuration |
+| Another NixOS desktop | New host and hardware files, portable + desktop profiles | Template available; tailor it to the machine |
+| NixOS VPS or headless VM | New host and hardware files, portable profile | No ready-to-deploy server template; `b1` is a placeholder |
+| Other Linux distribution | Standalone Home Manager + Stow | Helper available; add your own `homeConfigurations` entry |
+
+Installing Nix on another Linux distribution does not turn it into NixOS. On
+those machines this repository can manage your user environment; the existing
+distribution still manages system services, users, networking, and boot.
 
 ## What this repository builds
 
@@ -15,19 +31,21 @@ flake.nix
 │   └── Home Manager modules
 │       ├── home/portable.nix      shared CLI development environment
 │       ├── home/desktop.nix       reusable desktop applications and services
+│       ├── home/av-editor.nix     optional media applications
+│       ├── home/hardware-design.nix  optional hardware design applications
 │       └── home/<host>.nix        per-host user applications
-├── homeModules.portable               reusable portable Home Manager module
-├── homeModules.desktop                reusable desktop Home Manager module
+├── homeModules.{portable,desktop,av-editor,hardware-design}
 ├── lib.mkStandaloneHome           portable Home Manager on non-NixOS Linux
-├── checks.x86_64-linux.portable-home  standalone profile evaluation check
+├── checks.x86_64-linux.portable-home  standalone activation-package build check
 └── packages.x86_64-linux.recoveryIso
 ```
 
 `mkHostFor` integrates Home Manager into every NixOS host. Its default profile
 contains only `home/portable.nix`; desktop hosts must opt into the desktop module
-explicitly. `j2` composes portable, desktop, and `home/j2.nix`, while `b1`
-currently receives only portable. Home Manager uses the host's Nixpkgs package
-set, so host-level package policy such as `j2`'s unfree allowlist also applies to
+explicitly. `j2` composes portable, desktop, AV editor, hardware design, and
+`home/j2.nix`, while `b1` currently receives only portable. Home Manager uses
+the host's Nixpkgs package set, so host-level package policy such as `j2`'s
+unfree allowlist also applies to
 its Home Manager packages.
 
 The ownership boundary is:
@@ -42,6 +60,25 @@ For example, Stow owns the editable Ghostty and tmux configurations while Home
 Manager installs Ghostty and generates `.config/tmux/nix-plugins.conf` with
 pinned paths for Sensible, Resurrect, and Continuum.
 
+## Where to make a change
+
+| Change | Edit | Apply with |
+| --- | --- | --- |
+| Settings shared by all NixOS hosts | `configuration.nix` | `nixos-rebuild switch --flake /etc/nixos#<host>` |
+| One machine's boot, hardware, or services | `hosts/<host>.nix` | The same NixOS rebuild command |
+| User packages or Home Manager settings | `home/*.nix` and the host's module list in `flake.nix` | NixOS rebuild on these NixOS hosts; `home-manager switch` for standalone Linux |
+| Editable application preferences | `dotfiles/<package>/...` | Usually reload the application; restow when adding or removing files |
+| Package/input versions | `flake.lock`, via `nix flake update` | Rebuild or switch afterward |
+
+On J2, Home Manager is integrated into NixOS: one `nixos-rebuild switch` applies
+both. There is currently no standalone `homeConfigurations.j2` output, so do not
+use a separate `home-manager switch --flake .#j2` command.
+
+The Stow symlinks point to the **editable checkout**, not a frozen Nix store
+copy. Edits to linked dotfiles take effect independently of a NixOS rebuild.
+Keep that checkout at the configured `dotfilesRoot`; moving or deleting it
+breaks the links.
+
 ## Make this configuration yours
 
 Fork the repository or change its Git remote, then review these values before
@@ -53,11 +90,13 @@ activating it on another machine:
 4. Search for personal paths and replace the ones you want:
 
    ```bash
-   rg '/home/saleh|username ? "saleh"' .
+   rg --hidden -g '!.git/**' '/home/saleh|saleh|#j2' home hosts dotfiles flake.nix configuration.nix templates
    ```
 
-   In particular, review the MPD music directory in `home/desktop.nix`,
-   Noctalia and wallpaper paths, aliases, and personal application commands.
+   In particular, review Noctalia's wallpaper path, SSH configuration, aliases,
+   and personal application commands. MPD already uses the configured user's
+   home directory. The `n-*` rebuild aliases in `.bash_aliases` still target
+   `.#j2` and assume you run them from this checkout.
 5. Review the timezone, bootloader, graphics, power management, and desktop
    choices. The new-machine template enables a Niri desktop and GRUB by default.
 6. Enable optional unfree packages only on the host that needs them. Claude Code
@@ -65,15 +104,31 @@ activating it on another machine:
    commented allowance is only for optional DisplayLink support.
 7. Set the target user's password with `passwd` and restore secrets separately.
 
+`configuration.nix` sets `system.stateVersion`, and `home/portable.nix` sets
+`home.stateVersion`, both to `25.11`. These select compatibility defaults; they
+do not select package versions or mean the setup is outdated. Keep an existing
+machine's values when adopting this repo. Currently they are shared assignments,
+so supporting machines with different values requires moving them into per-host
+and per-home configuration. See the
+[NixOS stateVersion option](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/misc/version.nix).
+
 ## Common workflow
 
-New files must be added to Git before normal flake evaluation will see them:
+Run these commands from the checkout. New files must be added to Git before
+normal flake evaluation will see them; edits to already tracked files do not
+need a commit first:
 
 ```bash
 git status
 git add <new-files>
-nix flake check
+nix flake check --no-build
 ```
+
+`nix flake check --no-build` checks evaluation. `nix flake check` additionally
+builds the declared checks, currently the portable Home Manager activation
+package. Neither command builds every host or the recovery ISO, nor activates
+Home Manager or tests Stow against your actual home directory. See the
+[Nix command reference](https://nix.dev/manual/nix/2.34/command-ref/new-cli/nix3-flake-check.html).
 
 For an existing host such as `j2`:
 
@@ -81,7 +136,7 @@ For an existing host such as `j2`:
 # Build without activating
 sudo nixos-rebuild build --flake /etc/nixos#j2
 
-# Activate until reboot
+# Activate without changing the boot default
 sudo nixos-rebuild test --flake /etc/nixos#j2
 
 # Activate now and make it the boot default
@@ -89,17 +144,44 @@ sudo nixos-rebuild switch --flake /etc/nixos#j2
 ```
 
 Use `sudo nixos-rebuild switch --rollback` or an older boot-menu generation to
-roll back NixOS. Stow-managed files follow Git instead of NixOS generations.
+roll back NixOS. This does not restore application data or Stow-managed dotfile
+contents; those dotfiles follow Git. `test` changes the running system and may
+restart services; it is not a simulation. See the
+[NixOS configuration manual](https://nixos.org/manual/nixos/stable/#sec-changing-config).
 
 Update pinned inputs deliberately, then rebuild:
 
 ```bash
 nix flake update
+git diff -- flake.lock
+nix flake check --no-build
+sudo nixos-rebuild build --flake /etc/nixos#j2
+sudo nixos-rebuild switch --flake /etc/nixos#j2
 ```
 
-Stow runs automatically after Home Manager activation. It refuses conflicting
-files rather than overwriting them, so back up existing dotfiles before the first
-switch. Later, use:
+The repo follows `nixos-unstable` and Home Manager's default development branch,
+with exact revisions in `flake.lock`. Updating the lock file does not activate
+anything. Commit a working lock file along with the configuration changes.
+
+J2 uses a pinned DisplayLink override with a manually supplied vendor ZIP. On a
+fresh builder, use the exact `nix-prefetch-url --name displaylink-630.zip` command
+and hash in `.github/workflows/ci.yml` before building J2. The unfree
+allowlist alone does not supply that archive.
+
+Stow runs automatically during Home Manager activation, after Home Manager links
+its files. Back up existing dotfiles and preview conflicts before the first
+switch (this needs `stow` installed):
+
+```bash
+bash /etc/nixos/scripts/stow-dotfiles.sh --dry-run
+```
+
+Differing existing files cause a conflict. The wrapper removes byte-for-byte
+identical legacy files during a real restow so it can replace them with links;
+the dry run does not perform that cleanup. Avoid having Home Manager and Stow
+manage the same path. See [GNU Stow's conflict rules](https://www.gnu.org/software/stow/manual/html_node/Conflicts.html).
+After activation, open a new login shell to load the session variables and Bash
+helpers, then use:
 
 ```bash
 dotfiles-stow-dry-run
@@ -107,14 +189,23 @@ dotfiles-stow
 dotfiles-unstow
 ```
 
+The script currently stows **all** listed packages, including Ghostty, Niri,
+Noctalia, and wallpapers, even for the portable profile. It does not install
+those desktop applications on a CLI-only host, but it does link their settings.
+There is currently no per-host Stow package selection. Shared SSH dotfiles and
+personal Bash aliases also travel with the portable profile; review them before
+using it on a server or work machine.
+
 ## Add a NixOS machine
 
 On a machine that already boots NixOS, preserve its stock configuration and
-clone your fork:
+clone your fork. Run this from your home directory, using your intended normal
+user account; `/etc/nixos.stock` must not already exist:
 
 ```bash
+cd "$HOME"
 sudo mv /etc/nixos /etc/nixos.stock
-sudo install -d -o "$USER" -g users /etc/nixos
+sudo install -d -m 0755 -o "$USER" -g users /etc/nixos
 git clone <your-repository-url> /etc/nixos
 cd /etc/nixos
 ```
@@ -129,6 +220,9 @@ cp templates/new-computer.nix hosts/laptop2.nix
 
 Edit `hosts/laptop2.nix` so it imports `./laptop2-hardware.nix`, sets the
 hostname, and matches the machine's boot, storage, graphics, and service needs.
+Compare the bootloader settings with `/etc/nixos.stock/configuration.nix` and
+the generated mount points. In particular, the template expects the EFI System
+Partition at `/boot/efi`; a stock installation may mount it at `/boot`.
 Then register it in `flake.nix`:
 
 ```nix
@@ -145,7 +239,8 @@ nixosConfigurations = {
 };
 ```
 
-Omit `homeModules` for a portable CLI-only profile. For applications or
+Omit `homeModules` for a portable user profile; that does not disable desktop
+services or packages in the copied NixOS host module. For applications or
 preferences unique to the new machine, create `home/laptop2.nix` and append it
 to the list. The copied host module should retain hardware, services, desktop
 session infrastructure, and administrative packages; place ordinary user
@@ -166,11 +261,66 @@ sudo passwd your-user
 
 `hosts/b1.nix` is an evaluation placeholder, not a deployable host.
 
+### NixOS VPS or headless VM
+
+Start with the provider's working NixOS configuration and generated hardware
+file. Create `hosts/vps1.nix` that imports `./vps1-hardware.nix`, sets the hostname,
+and retains the provider's required bootloader and network settings. Register
+it inside the existing `nixosConfigurations` block:
+
+```nix
+vps1 = mkHostFor {
+  hostModule = ./hosts/vps1.nix;
+  username = "your-user";
+};
+```
+
+This selects portable Home Manager by default. Do not copy J2's disk UUIDs or
+the desktop template's Niri, DisplayLink, UEFI, or Btrfs Docker assumptions.
+
+Every host made with `mkHostFor` also imports `configuration.nix`, which
+currently enables NetworkManager, systemd-resolved, OpenSSH with password and
+keyboard-interactive authentication, and Docker. It puts the user in `wheel`
+and `docker`. This is a shared development baseline, not a minimal server
+profile; review it against the VPS provider's networking and your intended
+services.
+
+Add your public SSH key in the host module:
+
+```nix
+users.users.your-user.openssh.authorizedKeys.keys = [
+  "ssh-ed25519 <your-public-key>"
+];
+```
+
+Verify a separate key-based login before disabling password authentication.
+Since the shared configuration sets those options directly, a host-specific
+override needs `lib.mkForce` (and `{ lib, ... }:` in the host module arguments):
+
+```nix
+services.openssh.settings.PasswordAuthentication = lib.mkForce false;
+services.openssh.settings.KbdInteractiveAuthentication = lib.mkForce false;
+```
+
+Build first, then apply from the VPS with the provider console available while
+changing boot, networking, or SSH. Non-NixOS VPS machines use the standalone
+Home Manager instructions below instead.
+
 ## Standalone Home Manager on Linux
 
-For a non-NixOS x86_64 Linux machine, install Nix and Home Manager, clone the
-repository somewhere owned by the user, and add an output alongside the existing
-flake outputs:
+For a non-NixOS x86_64 Linux machine, first
+[install Nix](https://nix.dev/install-nix) and verify `nix --version` works.
+Enable the command and flake features by adding this line to
+`~/.config/nix/nix.conf` (create its parent directory if needed):
+
+```ini
+experimental-features = nix-command flakes
+```
+
+Clone the repository somewhere owned by the user, such as
+`/home/your-user/src/nixos-config`. There are currently **no** exported
+`homeConfigurations` entries. Add the following inside the `in { ... }` outputs
+block in `flake.nix`, alongside `nixosConfigurations`, not inside it:
 
 ```nix
 homeConfigurations."your-user@workstation" = mkStandaloneHome {
@@ -180,7 +330,19 @@ homeConfigurations."your-user@workstation" = mkStandaloneHome {
 };
 ```
 
-Activate it with:
+Before activating, back up conflicting dotfiles. Bootstrap using the Home
+Manager version pinned by this repo (run as your normal user, without `sudo`):
+
+```bash
+cd /home/your-user/src/nixos-config
+nix build '.#homeConfigurations.your-user@workstation.activationPackage'
+nix shell --inputs-from . nixpkgs#stow --command bash scripts/stow-dotfiles.sh --dry-run
+nix run --inputs-from . home-manager -- switch --flake '.#your-user@workstation'
+```
+
+`--inputs-from .` makes the first Home Manager command use this flake's pinned
+input. After activation, start a new login shell. Home Manager installs its own
+CLI, so later apply changes with:
 
 ```bash
 home-manager switch \
@@ -189,6 +351,14 @@ home-manager switch \
 
 This installs the portable CLI and dotfile environment. It does not configure
 the kernel, bootloader, networking, Docker daemon, or NixOS desktop.
+The current portable module also starts a user SSH agent and includes tools
+such as Node.js, Neovim, ffmpeg, and X11 clipboard support; it is not a minimal
+server package set. Desktop dotfiles are linked as described above. Standalone
+Home Manager expects a working Linux user environment, including systemd user
+services for the SSH agent.
+
+See the [Home Manager standalone guide](https://nix-community.github.io/home-manager/nix-flakes/standalone.html)
+for how flake-based user configurations work.
 
 ## Build and use the recovery ISO
 
@@ -233,7 +403,8 @@ showing either workflow:
 
 - **`single-boot-destructive`** prints a separate `sudo` command that requires a
   second `WIPE /dev/...` confirmation. It creates EFI and `/boot` partitions, a
-  LUKS-encrypted Btrfs root with subvolumes, and 16 GiB swap.
+  LUKS-encrypted Btrfs root with subvolumes, and 16 GiB **unencrypted** swap.
+  The EFI and `/boot` partitions are also unencrypted.
 - **`multiboot`** never partitions, resizes, formats, or mounts existing OS
   partitions. It writes manual guidance to
   `/tmp/nixos-recovery/actions/01-multiboot-mount-commands.txt`; the operator must
@@ -247,6 +418,16 @@ and hostname chosen earlier:
 sudo nixos-recovery-install --finish \
   --hostname laptop2 \
   --username your-user
+```
+
+Before running the generated install script, review
+`/mnt/etc/nixos/hosts/laptop2.nix` and its entry in `/mnt/etc/nixos/flake.nix`.
+The finish helper copies the desktop template but registers only portable Home
+Manager by default. For a full desktop, add `home/desktop.nix` alongside
+`home/portable.nix` in that host's `homeModules` list as shown earlier. It does
+not automatically copy J2's additional application profiles. Then install:
+
+```bash
 sudo bash /tmp/nixos-recovery/actions/02-finish-install.sh
 ```
 
