@@ -54,7 +54,15 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
+----------- Keymaps ---------------------------
+
 -- Request completion with Ctrl-Space and accept an item with Ctrl-Y.
 vim.keymap.set("i", "<C-Space>", function()
   vim.lsp.completion.get()
 end, { desc = "LSP completion" })
+
+-- toggle inlay hints (type hints for TypeScript)
+vim.keymap.set("n", "<leader>ih", function()
+  local enabled = vim.lsp.inlay_hint.is_enabled({ bufnr = 0 })
+  vim.lsp.inlay_hint.enable(not enabled, { bufnr = 0 })
+end, { desc = "Toggle inlay hints" })
