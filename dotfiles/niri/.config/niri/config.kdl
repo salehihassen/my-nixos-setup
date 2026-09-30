@@ -383,6 +383,12 @@ binds {
     Alt+Print { screenshot-window; }
 
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+    Mod+BackSpace allow-inhibiting=false hotkey-overlay-title="Stop AI desktop control" {
+        spawn "/etc/nixos/scripts/desktop-control/stop.sh";
+    }
+    Mod+Shift+BackSpace allow-inhibiting=false hotkey-overlay-title="Stop AI desktop control" {
+        spawn "/etc/nixos/scripts/desktop-control/stop.sh";
+    }
 
     // The quit action will show a confirmation dialog to avoid accidental exits.
     Mod+Shift+E { quit; }

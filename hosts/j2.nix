@@ -152,6 +152,9 @@
   # DISPLAY / AUDIO / APPS / LOGIN  =================
   # Niri tiling compositor
   programs.niri.enable = true;
+  # Virtual input for the opt-in, locally approved desktop-control service.
+  programs.ydotool.enable = true;
+  programs.ydotool.group = "nixcfg";
   # Wayland first login manager
   services.greetd.enable = true;
   # Graphical greetd greeter
