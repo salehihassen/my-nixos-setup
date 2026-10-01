@@ -1,5 +1,22 @@
 { config, pkgs, inputs, dotfilesRoot, ... }:
 
+let
+  desktopControlCrosshair = pkgs.stdenv.mkDerivation {
+    pname = "desktop-control-crosshair";
+    version = "1";
+    src = ../scripts/desktop-control/crosshair.c;
+    dontUnpack = true;
+    nativeBuildInputs = [ pkgs.pkg-config ];
+    buildInputs = [ pkgs.gtk4 pkgs.gtk4-layer-shell ];
+    buildPhase = ''
+      $CC "$src" -o desktop-control-crosshair $(pkg-config --cflags --libs gtk4 gtk4-layer-shell-0)
+    '';
+    installPhase = ''
+      install -Dm755 desktop-control-crosshair "$out/bin/desktop-control-crosshair"
+    '';
+  };
+in
+
 {
   imports = [
     ./noctalia.nix # Noctalia UIs
@@ -39,6 +56,7 @@
         "YDOTOOL_BIN=${pkgs.ydotool}/bin/ydotool"
         "YDOTOOL_SOCKET=/run/ydotoold/socket"
         "FUZZEL_BIN=${pkgs.fuzzel}/bin/fuzzel"
+        "CROSSHAIR_BIN=${desktopControlCrosshair}/bin/desktop-control-crosshair"
         "WLRCTL_BIN=${pkgs.wlrctl}/bin/wlrctl"
         "NOTIFY_BIN=${pkgs.libnotify}/bin/notify-send"
       ];

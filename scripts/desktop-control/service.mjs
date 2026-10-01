@@ -14,6 +14,7 @@ const binary = {
   grim: process.env.GRIM_BIN || 'grim',
   ydotool: process.env.YDOTOOL_BIN || 'ydotool',
   fuzzel: process.env.FUZZEL_BIN || 'fuzzel',
+  crosshair: process.env.CROSSHAIR_BIN || 'desktop-control-crosshair',
   wlrctl: process.env.WLRCTL_BIN || 'wlrctl',
   notify: process.env.NOTIFY_BIN || 'notify-send',
 };
@@ -41,11 +42,35 @@ async function selectedOutput(name) {
   return output;
 }
 
-async function approval(description) {
+async function showCrosshair(output, x, y) {
+  const child = spawn(binary.crosshair, [output, String(x), String(y)], {
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  await new Promise((resolve, reject) => {
+    let readyText = '';
+    const timer = setTimeout(() => reject(new Error('Crosshair did not appear')), 3000);
+    child.stdout.on('data', (data) => {
+      readyText += data;
+      if (readyText.includes('READY\n')) { clearTimeout(timer); resolve(); }
+    });
+    child.on('error', (error) => { clearTimeout(timer); reject(error); });
+    child.on('exit', (code) => { clearTimeout(timer); reject(new Error(`Crosshair exited: ${code}`)); });
+  }).catch((error) => { child.kill('SIGTERM'); throw error; });
+  return child;
+}
+
+async function approval(description, marker, crosshair) {
   return await new Promise((resolve, reject) => {
     const child = spawn(binary.fuzzel, [
-      '--dmenu', '--prompt', 'AI desktop action > ', `--mesg=${description.slice(0, 180)}`,
+      '--dmenu', '--lines=2', '--minimal-lines',
+      ...(marker ? [
+        `--output=${marker.output}`,
+        `--anchor=${marker.y < marker.height / 2 ? 'bottom' : 'top'}`,
+        '--y-margin=20',
+      ] : []),
+      '--prompt', 'AI desktop action > ', `--mesg=${description.slice(0, 180)}`,
     ], { stdio: ['pipe', 'pipe', 'pipe'] });
+    crosshair?.once('exit', () => child.kill('SIGTERM'));
     let answer = '';
     let errors = '';
     const timer = setTimeout(() => child.kill('SIGTERM'), 60000);
@@ -90,6 +115,7 @@ async function perform(request) {
 
   let description;
   let action;
+  let marker;
   if (op === 'click' || op === 'move') {
     const output = await selectedOutput(args.output);
     const point = outputPoint(output, args.x, args.y);
@@ -97,6 +123,7 @@ async function perform(request) {
     if (!buttons.has(button)) throw new Error('Unsupported mouse button');
     const clicks = op === 'click' ? count(args.clicks || 1, 'clicks', 2) : 0;
     description = `${op} ${op === 'click' ? `${button} ${clicks}x ` : ''}at ${output.name} (${args.x}, ${args.y})`;
+    if (op === 'click') marker = { output: output.name, x: args.x, y: args.y, height: output.logical.height };
     action = async () => {
       await move(point);
       for (let i = 0; i < clicks; i++) await command('wlrctl', ['pointer', 'click', button]);
@@ -147,7 +174,11 @@ async function perform(request) {
     throw new Error(`Unknown operation: ${op}`);
   }
 
-  if (!(await approval(description))) return { approved: false, message: 'Action denied or timed out' };
+  const crosshair = marker ? await showCrosshair(marker.output, marker.x, marker.y) : null;
+  let approved;
+  try { approved = await approval(description, marker, crosshair); }
+  finally { crosshair?.kill('SIGTERM'); }
+  if (!approved) return { approved: false, message: 'Action denied or timed out' };
   await new Promise((resolve) => setTimeout(resolve, 180));
   await action();
   return { approved: true, message: description };

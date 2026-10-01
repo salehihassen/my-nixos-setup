@@ -41,7 +41,9 @@ shortcut also shows a Noctalia notification.
 
 1. Ask Codex to list displays and screenshot the display containing KCalc.
 2. Ask it to calculate `7 × 8` using KCalc's GUI and verify `56` in a new
-   screenshot. Each input action should show a fuzzel `APPROVE`/`DENY` prompt.
+   screenshot. Each click should show a temporary crosshair at its target and
+   a fuzzel `APPROVE`/`DENY` prompt on that display. Other input actions still
+   show the prompt without a crosshair.
 3. Trigger either stop shortcut while an approval is pending. Verify that the
    action does not run and another tool call reports the service is stopped.
 4. Restart the service, then repeat with Pi's Kimi K3 model. Its proxy route
