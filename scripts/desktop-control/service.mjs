@@ -15,6 +15,7 @@ const binary = {
   ydotool: process.env.YDOTOOL_BIN || 'ydotool',
   fuzzel: process.env.FUZZEL_BIN || 'fuzzel',
   crosshair: process.env.CROSSHAIR_BIN || 'desktop-control-crosshair',
+  pointer: process.env.POINTER_BIN || 'desktop-control-pointer',
   wlrctl: process.env.WLRCTL_BIN || 'wlrctl',
   notify: process.env.NOTIFY_BIN || 'notify-send',
 };
@@ -94,14 +95,12 @@ function count(value, label, limit) {
   return value;
 }
 
-async function move(point) {
-  // wlrctl uses the compositor's virtual-pointer protocol. Reset to the
-  // canvas's top-right edge before a relative move to avoid pointer
-  // acceleration and ydotool's imprecise "absolute" emulation.
-  const all = await outputs();
-  const right = Math.max(...all.map((item) => item.logical.x + item.logical.width)) - 1;
-  await command('wlrctl', ['pointer', 'move', '100000', '-100000']);
-  await command('wlrctl', ['pointer', 'move', String(point.x - right), String(point.y)]);
+async function move(output, point) {
+  await command('pointer', [
+    output.name,
+    String(point.x - output.logical.x), String(point.y - output.logical.y),
+    String(output.logical.width), String(output.logical.height),
+  ]);
 }
 
 async function perform(request) {
@@ -125,7 +124,7 @@ async function perform(request) {
     description = `${op} ${op === 'click' ? `${button} ${clicks}x ` : ''}at ${output.name} (${args.x}, ${args.y})`;
     if (op === 'click') marker = { output: output.name, x: args.x, y: args.y, height: output.logical.height };
     action = async () => {
-      await move(point);
+      await move(output, point);
       for (let i = 0; i < clicks; i++) await command('wlrctl', ['pointer', 'click', button]);
     };
   } else if (op === 'type_text') {
@@ -147,7 +146,7 @@ async function perform(request) {
     }
     description = `scroll ${amount} steps at ${output.name} (${args.x}, ${args.y})`;
     action = async () => {
-      await move(point);
+      await move(output, point);
       await command('wlrctl', ['pointer', 'scroll', String(amount * 120), '0']);
     };
   } else if (op === 'drag') {
@@ -156,11 +155,11 @@ async function perform(request) {
     const end = outputPoint(output, args.toX, args.toY);
     description = `drag on ${output.name} (${args.fromX}, ${args.fromY}) to (${args.toX}, ${args.toY})`;
     action = async () => {
-      await move(start);
+      await move(output, start);
       await command('ydotool', ['click', buttonCode('left', 'down')]);
       try {
         for (let step = 1; step <= 10; step++) {
-          await move({
+          await move(output, {
             x: Math.round(start.x + (end.x - start.x) * step / 10),
             y: Math.round(start.y + (end.y - start.y) * step / 10),
           });

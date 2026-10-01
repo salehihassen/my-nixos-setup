@@ -15,6 +15,23 @@ let
       install -Dm755 desktop-control-crosshair "$out/bin/desktop-control-crosshair"
     '';
   };
+  desktopControlPointer = pkgs.stdenv.mkDerivation {
+    pname = "desktop-control-pointer";
+    version = "1";
+    src = ../scripts/desktop-control/pointer.c;
+    dontUnpack = true;
+    nativeBuildInputs = [ pkgs.pkg-config pkgs.wayland-scanner ];
+    buildInputs = [ pkgs.wayland ];
+    buildPhase = ''
+      protocol=${pkgs.wlr-protocols}/share/wlr-protocols/unstable/wlr-virtual-pointer-unstable-v1.xml
+      wayland-scanner client-header "$protocol" wlr-virtual-pointer-unstable-v1-client-protocol.h
+      wayland-scanner private-code "$protocol" pointer-protocol.c
+      $CC -I. "$src" pointer-protocol.c -o desktop-control-pointer $(pkg-config --cflags --libs wayland-client)
+    '';
+    installPhase = ''
+      install -Dm755 desktop-control-pointer "$out/bin/desktop-control-pointer"
+    '';
+  };
 in
 
 {
@@ -57,6 +74,7 @@ in
         "YDOTOOL_SOCKET=/run/ydotoold/socket"
         "FUZZEL_BIN=${pkgs.fuzzel}/bin/fuzzel"
         "CROSSHAIR_BIN=${desktopControlCrosshair}/bin/desktop-control-crosshair"
+        "POINTER_BIN=${desktopControlPointer}/bin/desktop-control-pointer"
         "WLRCTL_BIN=${pkgs.wlrctl}/bin/wlrctl"
         "NOTIFY_BIN=${pkgs.libnotify}/bin/notify-send"
       ];
