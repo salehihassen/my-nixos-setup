@@ -206,7 +206,7 @@ binds {
     Super+Alt+L hotkey-overlay-title="Lock the screen" {
         spawn "noctalia" "msg" "session" "lock";
     }
-    Mod+E hotkey-overlay-title="Open File Manager" { spawn "nautilus"; }
+    Mod+E hotkey-overlay-title="Open File Manager" { spawn "env" "GSK_RENDERER=gl" "nautilus"; }
     Mod+Apostrophe hotkey-overlay-title="Open Zen browser" { spawn "zen-beta"; }
     Mod+Shift+Apostrophe hotkey-overlay-title="Open Chromium browser" { spawn "chromium"; }
     Mod+N repeat=false hotkey-overlay-title="Toggle notification history" {
