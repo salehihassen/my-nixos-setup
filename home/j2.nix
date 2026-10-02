@@ -22,7 +22,6 @@
     wl-clipboard
     pamixer
     pavucontrol
-    nautilus
     gimp
     networkmanagerapplet
   ];

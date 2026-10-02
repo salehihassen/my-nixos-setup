@@ -43,9 +43,11 @@ in
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
+    NAUTILUS_4_EXTENSION_DIR = "${pkgs.nautilus-python}/lib/nautilus/extensions-4";
   };
 
   home.packages = with pkgs; [
+    nautilus
     zed-editor
     wf-recorder
     slurp
@@ -57,6 +59,10 @@ in
     freerdp
     kdePackages.kcalc
   ];
+
+  # Ghostty ships an "Open in Ghostty" menu extension for Nautilus.
+  xdg.dataFile."nautilus-python/extensions/ghostty.py".source =
+    "${config.programs.ghostty.package}/share/nautilus-python/extensions/ghostty.py";
 
   systemd.user.services.desktop-control = {
     Unit = {
