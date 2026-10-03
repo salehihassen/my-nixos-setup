@@ -56,6 +56,10 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
 ----------- Keymaps ---------------------------
 
+vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float, {
+  desc = "Show diagnostic",
+})
+
 -- Request completion with Ctrl-Space and accept an item with Ctrl-Y.
 vim.keymap.set("i", "<C-Space>", function()
   vim.lsp.completion.get()
