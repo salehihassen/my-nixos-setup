@@ -1,6 +1,6 @@
 [bar.main]
 center = ["workspaces"]
-end = ["network", "battery", "clock"]
+end = ["screen-recording", "network", "battery", "clock"]
 position = "top"
 start = ["control-center", "cpu", "temp", "ram", "disk"]
 
@@ -9,6 +9,9 @@ warning_threshold = 30
 
 [hooks]
 theme_mode_changed = "$HOME/noctalia-sync-appearance \"$NOCTALIA_THEME_MODE\""
+
+[plugins]
+enabled = ["saleh/screen-recording-status"]
 
 [shell]
 time_format = "{:%I:%M %p}"
@@ -32,6 +35,9 @@ type = "sysmon"
 [widget.ram]
 stat = "ram_used"
 type = "sysmon"
+
+[widget.screen-recording]
+type = "saleh/screen-recording-status:indicator"
 
 [widget.temp]
 stat = "cpu_temp"
