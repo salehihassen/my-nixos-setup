@@ -4,6 +4,7 @@
   imports = [
     ./j2-hardware.nix
     ../home/protonvpn-toggle.nix
+    ./j2-t3code.nix
   ];
 
   # Overlays for PRs in flight ===========================================

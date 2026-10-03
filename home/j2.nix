@@ -1,6 +1,8 @@
 { pkgs, ... }:
 
 {
+  imports = [ ./t3code.nix ];
+
   home.packages = with pkgs; [
     home-assistant-cli
 

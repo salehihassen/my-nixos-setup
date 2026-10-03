@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # Keep the nightly source build's toolchain pinned by its packaging flake.
+    # Update this input independently with: nix flake update t3-code-nix
+    t3-code-nix.url = "github:LisaScheers/t3-code-nix";
+
     noctalia = {
       url = "github:noctalia-dev/noctalia";
     };
