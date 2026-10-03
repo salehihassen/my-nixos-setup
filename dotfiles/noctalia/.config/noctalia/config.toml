@@ -11,7 +11,17 @@ warning_threshold = 30
 theme_mode_changed = "$HOME/noctalia-sync-appearance \"$NOCTALIA_THEME_MODE\""
 
 [plugins]
-enabled = ["saleh/screen-recording-status"]
+enabled = ["noctalia/screen_recorder"]
+
+[plugin_settings."noctalia/screen_recorder"]
+# Portal capture includes DisplayLink and unfamiliar office monitors.
+video_source = "portal"
+directory = "~/Videos"
+filename_pattern = "recording-%Y-%m-%d_%H-%M-%S"
+audio_source = "none"
+hide_inactive = false
+glyph_idle = "video-off"
+glyph_recording = "player-record"
 
 [shell]
 time_format = "{:%I:%M %p}"
@@ -37,7 +47,7 @@ stat = "ram_used"
 type = "sysmon"
 
 [widget.screen-recording]
-type = "saleh/screen-recording-status:indicator"
+type = "noctalia/screen_recorder:recorder"
 
 [widget.temp]
 stat = "cpu_temp"

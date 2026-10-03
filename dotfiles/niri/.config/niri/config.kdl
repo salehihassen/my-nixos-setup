@@ -220,12 +220,7 @@ binds {
     }
 
     Mod+Alt+R repeat=false hotkey-overlay-title="Start/stop screen recording" {
-        spawn-sh r#"
-            pkill -INT -u "$(id -u)" -x wf-recorder && exit 0
-            mkdir -p "$HOME/Videos" || exit 1
-            output=$(niri msg --json focused-output | jq -er .name) || exit 1
-            exec wf-recorder -o "$output" -f "$HOME/Videos/recording-$(date +%Y-%m-%d_%H-%M-%S).mp4"
-        "#;
+        spawn "noctalia" "msg" "plugin" "noctalia/screen_recorder:service" "all" "toggle";
     }
 
     Super+Alt+S allow-when-locked=true hotkey-overlay-title=null { spawn-sh "pkill orca || exec orca"; }

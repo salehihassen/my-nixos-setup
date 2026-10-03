@@ -49,7 +49,7 @@ in
   home.packages = with pkgs; [
     nautilus
     zed-editor
-    wf-recorder
+    gpu-screen-recorder
     slurp
     grim
     wlrctl
