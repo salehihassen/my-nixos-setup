@@ -132,6 +132,30 @@ alias n-update-home="nix flake update nixpkgs home-manager && nix build '.#nixos
 
 # Misc apps =======================================
 
+public-upload-file() {
+  if (( $# < 1 || $# > 2 )); then
+    printf 'Usage: public-upload-file LOCAL_FILE [REMOTE_FILENAME]\n' >&2
+    return 2
+  fi
+
+  if [[ ! -f "$1" ]]; then
+    printf 'File not found: %s\n' "$1" >&2
+    return 1
+  fi
+
+  if [[ -z "${PUBLIC_BUCKET:-}" ]]; then
+    printf 'PUBLIC_BUCKET must be set and nonempty.\n' >&2
+    return 1
+  fi
+
+  local filename="${2:-${1##*/}}"
+  local destination="${PUBLIC_BUCKET%/}/$filename"
+
+  rclone copyto --progress -- "$1" "$destination" &&
+    rclone link -- "$destination"
+}
+
+
 alias career-ops-codex="/home/saleh/apps/career-ops/scripts/start-codex-career-ops"
 alias career-ops-opencode="cd /home/saleh/apps/career-ops && opencode"
 alias career-ops="career-ops-codex"

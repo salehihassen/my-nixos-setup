@@ -1,82 +1,102 @@
-# Panel B: official Noctalia recorder
+# Screen recording and capture targets
 
-This branch removes the custom recording-status plugin and uses Noctalia's
-official `noctalia/screen_recorder` plugin, backed by `gpu-screen-recorder`.
-The recorder package replaces `wf-recorder` in the desktop Home Manager module.
-No upstream plugin scripts are modified or copied into this repository.
-
-Super+Alt+R calls the plugin's singleton service with `toggle`. Starting opens
-the desktop portal's monitor/window picker; stopping finalizes the recording.
+Noctalia's official `noctalia/screen_recorder` plugin owns recording, the
+monitor/window picker, and the recorder icon. Super+Alt+R toggles recording;
+starting opens the desktop portal picker, and stopping finalizes the video.
 Videos go to `~/Videos/recording-YYYY-MM-DD_HH-MM-SS.mp4`, without audio.
+The official plugin remains unmodified.
 
-The official bar widget stays visible while idle (`video-off`) and shows a red
-recording glyph (`player-record`) while active. Clicking it toggles recording.
-Its current upstream implementation shows a status icon, without the captured
-monitor's connector, aliases, filename tooltip, or a `Not recording` text label.
-This is an intentional comparison of the stock widget against panel-a.
+The local `saleh/capture-target` plugin adds a read-only label beside that icon.
+Its singleton service polls Niri once per second and shares the result with
+every bar instance. It reads the actual cast target, rather than the currently
+focused monitor or window. PipeWire source-to-consumer links identify which
+application is consuming each capture.
+
+## Panel labels
+
+- Red `REC · middle (DVI-I-2)` identifies a GPU Screen Recorder capture.
+- Amber `SHARE · window: ~/ai (#154)` identifies a browser capture, including
+  Google Meet sharing an application window through Niri.
+- `REC+SHARE` means both consumers are attached to the same capture source.
+- Amber `CAST` shows an active target when the consuming application is unknown
+  or does not match the recorder/browser identities. It never guesses `REC`
+  just because a recorder is running elsewhere.
+- `No active capture` means Niri reports no actively streaming cast. Paused
+  sessions are counted in the tooltip, rather than shown as active captures.
+- `Capture status unavailable` means the query failed; it does not claim that
+  capture has stopped.
+
+Monitor labels include the connector ID. The built-in eDP display is `built-in`;
+the Acer KB272 and Dell P2717H are `middle` and `right`. External aliases match
+manufacturer/model/serial identity, so connector renumbering does not change
+their aliases. An unfamiliar monitor uses its model and connector, such as
+`Z27 (DP-3)`, or just the connector when metadata is missing. The alias mapping
+is at the top of
+`dotfiles/noctalia/.local/share/noctalia/plugins/capture-target/status.mjs`.
+
+Window labels show their title and Niri window ID. Long titles are shortened in
+the bar; hover for full titles, consumer applications, and cast IDs. Missing
+window metadata retains the ID and explicitly reports an unavailable title.
+The bar shows up to two active targets and a count of additional targets; the
+tooltip lists all of them.
+
+The label has no start/stop click action. Use the official recorder icon or
+Super+Alt+R for recording controls and Google Meet's own controls for sharing.
+Browser tab sharing that bypasses Niri is outside this label's scope. A browser
+consumer is labeled `SHARE`; the label does not identify the particular site.
 
 ## Why portal capture
 
 On this machine, `gpu-screen-recorder --info` lists the built-in display for
-direct capture but does not list the two DisplayLink-connected displays. Using
-`video_source = "focused"` would attempt an unsupported direct capture when one
-of those displays is focused. Portal mode allows selecting the docked monitors
-and unfamiliar office monitors through Niri's existing desktop portal.
+direct capture but does not list the two DisplayLink-connected displays. Portal
+mode allows selecting those displays and unfamiliar office monitors through
+Niri's desktop portal. It requires the existing `xdg-desktop-portal` and
+`xdg-desktop-portal-gnome` services, with no additional privileged KMS helper.
 
-The tradeoff is a picker when starting. It needs the existing
-`xdg-desktop-portal` / `xdg-desktop-portal-gnome` services. It does not require
-adding a privileged KMS helper to the NixOS configuration.
+## Apply changes
 
-## Try this branch
-
-Stop any recording first and start with a clean Git checkout. Unstow before
-switching so the custom plugin's links are removed while its files still exist.
+For an existing installation of the official recorder:
 
 ```bash
 cd /etc/nixos
-stow --dir="$PWD/dotfiles" --target="$HOME" --no-folding --delete niri noctalia
-git switch panel-b
-stow --dir="$PWD/dotfiles" --target="$HOME" --no-folding --restow niri noctalia
-sudo nixos-rebuild switch --flake /etc/nixos#j2
-noctalia msg plugins disable saleh/screen-recording-status
-noctalia msg plugins enable noctalia/screen_recorder
+stow --dir="$PWD/dotfiles" --target="$HOME" --no-folding --restow noctalia
+noctalia msg plugins enable saleh/capture-target
 noctalia msg config-reload
-niri validate
-```
-
-The rebuild installs `gpu-screen-recorder`. The plugin commands install/enable
-the official plugin and update Noctalia's saved selection, which otherwise
-overrides the branch's enabled-plugin list. Allow enabling to finish; check:
-
-```bash
-noctalia msg plugins list | rg 'screen_recorder'
-command -v gpu-screen-recorder
-systemctl --user is-active xdg-desktop-portal xdg-desktop-portal-gnome
 noctalia config validate
 ```
 
-Record each display through the picker, change focus during capture, then stop
-and play the saved video. Also cancel a picker and verify the indicator returns
-to idle. Repeat at another desk without adding monitor mappings. This widget
-tracks `gpu-screen-recorder`; it does not indicate recordings made with
-`wf-recorder` or every other recording application.
+Stow links the local plugin into `~/.local/share/noctalia/plugins/capture-target`
+and refreshes the configuration links. Enabling updates Noctalia's saved plugin
+selection, which otherwise overrides the configuration's enabled-plugin list.
+This companion change needs no Niri restart or NixOS rebuild. It uses the
+already-installed Node.js, Niri, and PipeWire tools.
+
+For a fresh installation, also enable `noctalia/screen_recorder` and apply the
+desktop NixOS configuration to install `gpu-screen-recorder`. The existing
+Niri binding is in the Stow `niri` package.
+
+## Validation
+
+```bash
+node --test scripts/capture-target.test.mjs
+node dotfiles/noctalia/.local/share/noctalia/plugins/capture-target/status.mjs
+noctalia plugins lint dotfiles/noctalia/.local/share/noctalia/plugins/capture-target
+noctalia config validate
+noctalia msg plugins list | rg 'capture-target|screen_recorder'
+```
+
+The tests cover simultaneous recorder/browser targets, physical monitor aliases
+and unfamiliar monitors, paused casts, reused PipeWire IDs, missing metadata,
+long titles, and multiple captures. For a live check, select each monitor and a
+window through the recorder picker; change focus and verify the target remains
+correct. Stop and verify the label returns to idle. Repeat with a browser share
+and with concurrent recording/sharing.
 
 If a recording fails, inspect
 `~/.local/state/noctalia/screen_recorder/gpu-screen-recorder.log`.
 
-Return to panel-a using its documented unstow/switch/restow sequence and rebuild
-to restore `wf-recorder` if needed.
-
-## Validation
-
-Niri and Noctalia configuration validation passed against the installed official
-plugin manifest. Nix evaluation confirms the desktop includes
-`gpu-screen-recorder`. In an isolated Noctalia instance, the stock widget/service
-loaded, found the native recorder, and accepted service IPC. Actual portal
-selection and video capture remain part of the interactive branch trial.
-
 ## References
 
-- [Official Noctalia recorder and IPC commands](https://docs.noctalia.dev/noctalia/plugins/official-plugins/#screen-recorder)
-- [Upstream widget](https://github.com/noctalia-dev/official-plugins/blob/main/screen_recorder/recorder.luau)
-- [Upstream settings](https://github.com/noctalia-dev/official-plugins/blob/main/screen_recorder/plugin.toml)
+- [Official Noctalia recorder](https://docs.noctalia.dev/noctalia/plugins/official-plugins/#screen-recorder)
+- [Niri cast status](https://niri-wm.github.io/niri/niri_ipc/struct.Cast.html)
+- [Niri capture targets](https://niri-wm.github.io/niri/niri_ipc/enum.CastTarget.html)

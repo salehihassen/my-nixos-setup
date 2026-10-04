@@ -1,0 +1,14 @@
+id = "saleh/capture-target"
+name = "Capture target"
+description = "Read-only Niri capture targets and direct camera activity, alongside native privacy and recorder widgets."
+version = "1.0.0"
+plugin_api = 17
+author = "saleh"
+
+[[service]]
+id = "status"
+entry = "service.luau"
+
+[[widget]]
+id = "label"
+entry = "widget.luau"

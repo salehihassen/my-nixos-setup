@@ -1,6 +1,6 @@
 [bar.main]
 center = ["workspaces"]
-end = ["screen-recording", "network", "battery", "clock"]
+end = ["privacy", "screen-recording", "capture-target", "network", "battery", "clock"]
 position = "top"
 start = ["control-center", "cpu", "temp", "ram", "disk"]
 
@@ -11,7 +11,7 @@ warning_threshold = 30
 theme_mode_changed = "$HOME/noctalia-sync-appearance \"$NOCTALIA_THEME_MODE\""
 
 [plugins]
-enabled = ["noctalia/screen_recorder"]
+enabled = ["noctalia/screen_recorder", "saleh/capture-target"]
 
 [plugin_settings."noctalia/screen_recorder"]
 # Portal capture includes DisplayLink and unfamiliar office monitors.
@@ -33,6 +33,17 @@ fill_mode = "crop"
 
 [widget.clock]
 format = "{:%I:%M %p}"
+
+[widget.capture-target]
+type = "saleh/capture-target:label"
+
+[widget.privacy]
+type = "privacy"
+# Show confirmed PipeWire activity; the companion also catches direct camera use.
+hide_inactive = true
+active_color = "#ff5252"
+inactive_color = "outline"
+icon_spacing = 6
 
 [widget.cpu]
 stat = "cpu_usage"
