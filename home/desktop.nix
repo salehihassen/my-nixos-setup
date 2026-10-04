@@ -1,6 +1,21 @@
 { config, pkgs, inputs, dotfilesRoot, ... }:
 
 let
+  nautilus = pkgs.symlinkJoin {
+    name = "nautilus-with-ghostty";
+    paths = [ pkgs.nautilus ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram "$out/bin/nautilus" \
+        --set NAUTILUS_4_EXTENSION_DIR "${pkgs.nautilus-python}/lib/nautilus/extensions-4" \
+        --set GSK_RENDERER gl
+      # D-Bus activation must use the same launcher as Mod + E.
+      service=share/dbus-1/services/org.gnome.Nautilus.service
+      rm "$out/$service"
+      substitute "${pkgs.nautilus}/$service" "$out/$service" \
+        --replace-fail "${pkgs.nautilus}/bin/nautilus" "$out/bin/nautilus"
+    '';
+  };
   desktopControlCrosshair = pkgs.stdenv.mkDerivation {
     pname = "desktop-control-crosshair";
     version = "1";
@@ -43,7 +58,6 @@ in
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
-    NAUTILUS_4_EXTENSION_DIR = "${pkgs.nautilus-python}/lib/nautilus/extensions-4";
   };
 
   home.packages = with pkgs; [
