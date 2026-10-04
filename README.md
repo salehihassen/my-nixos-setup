@@ -30,19 +30,20 @@ flake.nix
 │   ├── hosts/<host>-hardware.nix  generated disks and hardware
 │   └── Home Manager modules
 │       ├── home/portable.nix      shared CLI development environment
-│       ├── home/desktop.nix       reusable desktop applications and services
+│       ├── home/desktop.nix       Niri, desktop applications, and user services
+│       ├── home/snapshot-work.nix optional window/workspace/browser captures
 │       ├── home/av-editor.nix     optional media applications
 │       ├── home/hardware-design.nix  optional hardware design applications
 │       └── home/<host>.nix        per-host user applications
-├── homeModules.{portable,desktop,av-editor,hardware-design}
+├── homeModules.{portable,desktop,snapshot-work,av-editor,hardware-design}
 ├── lib.mkStandaloneHome           portable Home Manager on non-NixOS Linux
-├── checks.x86_64-linux.portable-home  standalone activation-package build check
+├── checks.x86_64-linux.*              standalone builds and snapshot checks
 └── packages.x86_64-linux.recoveryIso
 ```
 
 `mkHostFor` integrates Home Manager into every NixOS host. Its default profile
 contains only `home/portable.nix`; desktop hosts must opt into the desktop module
-explicitly. `j2` composes portable, desktop, AV editor, hardware design, and
+explicitly. `j2` composes portable, desktop, snapshot-work, AV editor, hardware design, and
 `home/j2.nix`, while `b1` currently receives only portable. Home Manager uses
 the host's Nixpkgs package set, so host-level package policy such as `j2`'s
 unfree allowlist also applies to
@@ -59,6 +60,82 @@ The ownership boundary is:
 For example, Stow owns the editable Ghostty and tmux configurations while Home
 Manager installs Ghostty and generates `.config/tmux/nix-plugins.conf` with
 pinned paths for Sensible, Resurrect, and Continuum.
+
+## Editable checkout scripts and optional snapshots
+
+Implemented and build-checked on NixOS (2026-10-04); the running generation has
+not been switched. Ubuntu hardware/session validation remains outstanding.
+
+A **checkout script** is executable source loaded from the writable Git checkout
+at runtime, rather than a frozen copy in `/nix/store`. Home Manager installs small
+`writeShellApplication` launchers with explicit interpreters and dependencies.
+They use the absolute `dotfilesRoot`, so a checkout at `~/src/nixos-config` works
+as well as `/etc/nixos`. Script edits apply on the next invocation; an already
+running service needs a restart. Changing dependencies, the launcher, or checkout
+location requires a switch. Deleting the checkout breaks these commands. Git
+supplies their source history and rollback.
+
+Stow continues to own editable application preferences. Home Manager must not
+generate the same Niri KDL or other files that Stow links. Desktop-control uses
+checkout scripts only, exposed as `desktop-control-stop`,
+`desktop-control-service`, and `desktop-control-mcp`. Privileged host services
+continue to run packaged executables.
+
+Snapshot capture is a separate Home Manager module. `desktop.nix` does not import
+it. A machine explicitly composes:
+
+```nix
+homeModules = [
+  ./home/portable.nix
+  ./home/desktop.nix
+  ./home/snapshot-work.nix # omit on machines that do not want captures
+];
+```
+
+Only snapshots support `programs.snapshot-work.sourceMode`: `"store"` (default)
+packages the implementation; `"checkout"` executes editable source under
+`dotfilesRoot/scripts/snapshot-work`. J2 selects checkout mode. Both expose
+`capture-work`, share source and tests, and create private output under
+`~/Pictures/snapshot-work/{UTC-start-timestamp}/`. Open `index.html` for the gallery;
+`manifest.json` records coverage and errors. Chromium tabs get at least five
+seconds each before capture. Niri traversal visits every window across monitors
+and workspaces, bringing off-screen columns into view. This does not enumerate
+hidden terminal panes or capture whole document scrollback. Browser session tab
+counts remain best effort; an already enabled CDP endpoint gives exact target
+enumeration. Screenshots cannot guarantee recovery of unsaved work.
+
+```bash
+capture-work                      # all windows, workspace views, Chromium tabs
+capture-work --tab-delay 10000     # allow ten seconds per browser tab
+capture-work --no-tabs             # omit tab switching
+```
+
+See [the capture documentation](scripts/snapshot-work/README.md) for recovery
+limits, CDP, profile selection, and report formats. On the first activation,
+the exact old `~/.local/bin/capture-work` launcher is backed up as
+`capture-work.pre-home-manager`, then Home Manager owns that command path.
+Unknown launchers are not overwritten. Old source under `~/.local/share/work-capture`
+and all previous captures remain untouched; the active implementation comes
+from this repository after switching.
+
+The launcher supplies Node.js, Niri's CLI, grim, wl-clipboard, and ydotool. It does
+not start a privileged daemon, restart browsers, reboot, or schedule captures.
+Set `home.sessionVariables.YDOTOOL_SOCKET` for the host's daemon socket;
+desktop-control and snapshots share it. A capture can override it in its caller
+environment.
+
+Standalone Linux gets Niri user units and portals from the desktop module;
+NixOS retains system integration through its Niri module. Ubuntu still needs
+graphics drivers, a login-session entry, authentication, and an appropriately
+permitted ydotool daemon. Ubuntu 26/eGPU validation is deferred to the new
+machine; a NixOS build does not validate those host integrations.
+
+Validation covers the j2 system build, portable/desktop/desktop-plus-snapshot
+standalone builds, 11 capture tests, wrapper execution in both source modes,
+paths with spaces, argument forwarding, live script edits, and missing-checkout
+errors. Temporary-home checks cover Stow package selection/removal and legacy
+launcher migration. Niri's current KDL validates. No desktop capture, service
+restart, system switch, or Ubuntu hardware test is performed by these checks.
 
 ## Where to make a change
 
@@ -125,8 +202,8 @@ nix flake check --no-build
 ```
 
 `nix flake check --no-build` checks evaluation. `nix flake check` additionally
-builds the declared checks, currently the portable Home Manager activation
-package. Neither command builds every host or the recovery ISO, nor activates
+builds portable, desktop, and desktop-plus-snapshot standalone activation
+packages, snapshot parser/traversal tests, and store/checkout wrapper checks. Neither command builds every host or the recovery ISO, nor activates
 Home Manager or tests Stow against your actual home directory. See the
 [Nix command reference](https://nix.dev/manual/nix/2.34/command-ref/new-cli/nix3-flake-check.html).
 
@@ -142,6 +219,19 @@ sudo nixos-rebuild test --flake /etc/nixos#j2
 # Activate now and make it the boot default
 sudo nixos-rebuild switch --flake /etc/nixos#j2
 ```
+
+One-time j2 migration note (2026-10-04): the read-only preflight found an existing
+manually enabled T3Code symlink that Home Manager would refuse to replace. Before
+this switch, move that link aside as your normal user (this does not stop the
+running service), then switch as above:
+
+```bash
+mv -i ~/.config/systemd/user/default.target.wants/t3code.service \
+  ~/Downloads/TODO/t3code.service.pre-home-manager
+```
+
+This is an existing local-state conflict, not a required step on fresh machines.
+The repository does not automatically delete unrelated service links.
 
 Use `sudo nixos-rebuild switch --rollback` or an older boot-menu generation to
 roll back NixOS. This does not restore application data or Stow-managed dotfile
@@ -189,11 +279,21 @@ dotfiles-stow
 dotfiles-unstow
 ```
 
-The script currently stows **all** listed packages, including Ghostty, Niri,
-Noctalia, and wallpapers, even for the portable profile. It does not install
-those desktop applications on a CLI-only host, but it does link their settings.
-There is currently no per-host Stow package selection. Shared SSH dotfiles and
-personal Bash aliases also travel with the portable profile; review them before
+The portable module selects Bash, Git, Neovim, SSH, and tmux. The desktop
+module adds Ghostty, Niri, Noctalia, wallpapers, and miscellaneous desktop
+scripts. Modules compose the `dotfiles.stowPackages` list; activation and new
+login shells receive its space-separated `DOTFILES_STOW_PACKAGES` value.
+A direct script invocation with that variable unset retains the old all-packages
+default. For a fresh portable-only dry run, specify it explicitly:
+
+```bash
+DOTFILES_STOW_PACKAGES='bash git neovim ssh tmux' bash scripts/stow-dotfiles.sh --dry-run
+```
+
+Removing a module does not automatically unstow its existing editable files.
+To remove only old desktop links, run the script with the desktop package list
+and `--delete`; it removes Stow-owned links, not the source files. Shared SSH
+settings and personal Bash aliases remain part of portable; review them before
 using it on a server or work machine.
 
 ## Add a NixOS machine
@@ -327,8 +427,24 @@ homeConfigurations."your-user@workstation" = mkStandaloneHome {
   username = "your-user";
   homeDirectory = "/home/your-user";
   dotfilesRoot = "/home/your-user/src/nixos-config";
+  # portable.nix is always included by this helper. Optional additions:
+  homeModules = [
+    ./home/desktop.nix
+    ./home/snapshot-work.nix
+    {
+      # Omit this to use the packaged snapshot source (the default).
+      programs.snapshot-work.sourceMode = "checkout";
+      home.sessionVariables.YDOTOOL_SOCKET = "/run/ydotoold/socket";
+    }
+  ];
 };
 ```
+
+Omit `homeModules` for CLI-only use. The modules are also exported as
+`homeModules.desktop` and `homeModules.snapshot-work` for another flake to import;
+pass `inputs` and `dotfilesRoot` along with the portable module when composing
+the personal desktop outside this helper. Snapshot store mode can be used by
+itself in an otherwise ordinary Home Manager configuration.
 
 Before activating, back up conflicting dotfiles. Bootstrap using the Home
 Manager version pinned by this repo (run as your normal user, without `sudo`):
@@ -349,13 +465,37 @@ home-manager switch \
   --flake /home/your-user/src/nixos-config#your-user@workstation
 ```
 
-This installs the portable CLI and dotfile environment. It does not configure
-the kernel, bootloader, networking, Docker daemon, or NixOS desktop.
+This installs the selected user environment. It does not configure the kernel,
+bootloader, networking, Docker daemon, or a system login manager.
 The current portable module also starts a user SSH agent and includes tools
 such as Node.js, Neovim, ffmpeg, and X11 clipboard support; it is not a minimal
-server package set. Desktop dotfiles are linked as described above. Standalone
+server package set. Desktop dotfiles are linked only when the desktop module is selected. Standalone
 Home Manager expects a working Linux user environment, including systemd user
 services for the SSH agent.
+
+For a Niri desktop on Ubuntu, also complete host setup before logging into it:
+
+- Install/configure the host's graphics driver. Follow Home Manager's
+  [generic-Linux GPU guidance](https://nix-community.github.io/home-manager/usage/gpu-non-nixos.html),
+  including its sudo setup helper when activation requests it. Proprietary
+  NVIDIA userspace libraries must match the host driver version.
+- Register a Wayland login-session entry that launches `niri-session` with the
+  user's Nix profile environment loaded. The desktop module supplies Niri's
+  user units, Xwayland satellite, and GNOME/GTK portals on generic Linux; the
+  host provides login, device access, audio, and authentication. Avoid installing
+  duplicate portal services from both package managers. Validate Noctalia's
+  lock/unlock against host PAM instead of copying NixOS PAM files.
+- Supply a ydotool daemon with `/dev/uinput` access and a restricted socket for
+  the intended user/group. Match its client version and configure
+  `home.sessionVariables.YDOTOOL_SOCKET`. This is needed for keyboard tab capture;
+  importing a Home Manager module does not grant privileged device access.
+- Review the editable output blocks in `dotfiles/niri/.config/niri/config.kdl`:
+  they retain j2's monitor identities/modes. Adapt them in the new machine's
+  checkout, along with wallpaper paths and other personal preferences. No new
+  monitor-selection abstraction was added in this refactor.
+
+Actual Ubuntu 26, eGPU, session login, and GPU validation remain future work on
+the new machine. The inference stack is separate from the desktop modules.
 
 See the [Home Manager standalone guide](https://nix-community.github.io/home-manager/nix-flakes/standalone.html)
 for how flake-based user configurations work.

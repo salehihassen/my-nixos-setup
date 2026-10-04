@@ -1,7 +1,19 @@
 # Niri desktop control
 
-This j2-only service gives Codex and Pi the same monitor screenshots and
+This optional, manually started desktop user service gives Codex and Pi the same monitor screenshots and
 approved mouse/keyboard actions. It runs in the logged-in Wayland session.
+
+Home Manager installs `desktop-control-service`, `desktop-control-mcp`, and
+`desktop-control-stop` wrappers. They execute **checkout scripts**: editable
+source under the configured `dotfilesRoot`, with Nix-provided interpreters and
+dependencies. New invocations see edits immediately; restart the running service
+after changing its implementation. Wrapper/dependency changes require a switch.
+There is no store/checkout mode for desktop-control. Niri bindings call
+`desktop-control-stop`, so they do not depend on `/etc/nixos` as the checkout path.
+
+Set `home.sessionVariables.YDOTOOL_SOCKET` for the host's ydotool daemon; the same
+setting is consumed by snapshot-work. The host owns daemon/device permissions.
+The service retains manual startup and the existing action approval prompts.
 
 ## Activate
 
@@ -15,13 +27,13 @@ systemctl --user start desktop-control.service
 Codex's global MCP entry is installed with:
 
 ```sh
-codex mcp add desktop-control -- /etc/profiles/per-user/saleh/bin/node /etc/nixos/scripts/desktop-control/mcp.mjs
+codex mcp add desktop-control -- desktop-control-mcp
 ```
 
 Start a **new** Codex session to discover its tools. The Home Manager switch
 links the Pi extension into `~/.pi/agent/extensions/`; restart Pi to load it.
 If Pi's Kimi K3 model is still marked text-only, run
-`node /etc/nixos/scripts/desktop-control/enable-pi-kimi-vision.mjs` after
+`node "$DOTFILES_ROOT/scripts/desktop-control/enable-pi-kimi-vision.mjs"` after
 confirming that your proxy route accepts images.
 
 ## Stop and restart

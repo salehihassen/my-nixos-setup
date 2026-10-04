@@ -72,19 +72,31 @@ export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@
 # if I need an even shorter PS1
 # export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\]\W\[\033[1;33m\]$(git_current_branch_short)\[\033[0m\]\$ '
 
+# 3 profiles of Codex
+# 1. cliproxy: default, daily driver, uses CLI Proxy API as upstream provider and telemetry is collected
+# 2. <default>: uses OAuth to ChatGPT directly and is mostly left with the stock tools.
+# 3. codex-custom: experiment with several new MCPs. Used rarely and a great space to experiment.
+
 alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
+alias codex-stock='codex-danger'
+alias co='codex-danger --profile cliproxy'
 alias codex-custom='codex --yolo --profile codex-custom'
-alias opencode-danger='opencode --agent --auto-approve'
-alias co='codex-danger'
 alias oc='opencode-danger'
 alias cc='claude --dangerously-skip-permissions'
+
 last-cost-co() {
   uv run python "${DOTFILES_ROOT:-/etc/nixos}/scripts/codex-last-cost.py" "$@"
 }
 
+
+
 last-cost-pi() {
   uv run python "${DOTFILES_ROOT:-/etc/nixos}/scripts/pi-last-cost.py" "$@"
 }
+
+
+
+alias opencode-danger='opencode --agent --auto-approve'
 
 # Browsing ===================================
 

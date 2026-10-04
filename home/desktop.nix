@@ -1,6 +1,46 @@
-{ config, pkgs, inputs, dotfilesRoot, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  dotfilesRoot,
+  ...
+}:
 
 let
+  # The implementation remains editable; only the launcher/dependencies are frozen.
+  checkoutCommand =
+    name: interpreter: relativePath: runtimeInputs:
+    pkgs.writeShellApplication {
+      inherit name runtimeInputs;
+      text = ''
+        script=${lib.escapeShellArg "${dotfilesRoot}/${relativePath}"}
+        if [[ ! -r "$script" ]]; then
+          printf 'Checkout script is missing: %s\nCheck dotfilesRoot.\n' "$script" >&2
+          exit 1
+        fi
+        ${lib.optionalString (config.home.sessionVariables ? YDOTOOL_SOCKET) ''
+          if [[ ! -v YDOTOOL_SOCKET ]]; then
+            export YDOTOOL_SOCKET=${lib.escapeShellArg (toString config.home.sessionVariables.YDOTOOL_SOCKET)}
+          fi
+        ''}
+        exec ${interpreter} "$script" "$@"
+      '';
+    };
+  desktopControlService =
+    checkoutCommand "desktop-control-service" "${pkgs.nodejs_24}/bin/node"
+      "scripts/desktop-control/service.mjs"
+      [ ];
+  desktopControlMcp =
+    checkoutCommand "desktop-control-mcp" "${pkgs.nodejs_24}/bin/node" "scripts/desktop-control/mcp.mjs"
+      [ ];
+  desktopControlStop =
+    checkoutCommand "desktop-control-stop" "${pkgs.bash}/bin/bash" "scripts/desktop-control/stop.sh"
+      [
+        pkgs.systemd
+        pkgs.ydotool
+        pkgs.libnotify
+      ];
   nautilus = pkgs.symlinkJoin {
     name = "nautilus-with-ghostty";
     paths = [ pkgs.nautilus ];
@@ -22,7 +62,10 @@ let
     src = ../scripts/desktop-control/crosshair.c;
     dontUnpack = true;
     nativeBuildInputs = [ pkgs.pkg-config ];
-    buildInputs = [ pkgs.gtk4 pkgs.gtk4-layer-shell ];
+    buildInputs = [
+      pkgs.gtk4
+      pkgs.gtk4-layer-shell
+    ];
     buildPhase = ''
       $CC "$src" -o desktop-control-crosshair $(pkg-config --cflags --libs gtk4 gtk4-layer-shell-0)
     '';
@@ -35,7 +78,10 @@ let
     version = "1";
     src = ../scripts/desktop-control/pointer.c;
     dontUnpack = true;
-    nativeBuildInputs = [ pkgs.pkg-config pkgs.wayland-scanner ];
+    nativeBuildInputs = [
+      pkgs.pkg-config
+      pkgs.wayland-scanner
+    ];
     buildInputs = [ pkgs.wayland ];
     buildPhase = ''
       protocol=${pkgs.wlr-protocols}/share/wlr-protocols/unstable/wlr-virtual-pointer-unstable-v1.xml
@@ -55,12 +101,44 @@ in
     inputs.zen-browser.homeModules.beta # For Zen browser
   ];
 
+  dotfiles.stowPackages = [
+    "ghostty"
+    "misc-scripts"
+    "niri"
+    "noctalia"
+    "wallpapers"
+  ];
+
+  # NixOS owns Niri's system/user units and portals there. Standalone Home
+  # Manager supplies user integration without taking ownership of Stow's KDL.
+  wayland.windowManager.niri = lib.mkIf config.targets.genericLinux.enable {
+    enable = true;
+  };
+  xdg.portal.extraPortals = lib.mkIf config.targets.genericLinux.enable [
+    pkgs.xdg-desktop-portal-gtk
+  ];
+
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
   };
 
   home.packages = with pkgs; [
+    desktopControlService
+    desktopControlMcp
+    desktopControlStop
+    niri
+    xwayland-satellite
+    dbus
+    jq
+    coreutils
+    procps
+    orca
+    chromium
+    wl-clipboard
+    kdePackages.polkit-kde-agent-1
+    adwaita-icon-theme
+    gnome-themes-extra
     nautilus
     zed-editor
     gpu-screen-recorder
@@ -86,12 +164,11 @@ in
     };
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.nodejs_24}/bin/node ${dotfilesRoot}/scripts/desktop-control/service.mjs";
+      ExecStart = lib.getExe desktopControlService;
       Environment = [
         "NIRI_BIN=${pkgs.niri}/bin/niri"
         "GRIM_BIN=${pkgs.grim}/bin/grim"
         "YDOTOOL_BIN=${pkgs.ydotool}/bin/ydotool"
-        "YDOTOOL_SOCKET=/run/ydotoold/socket"
         "FUZZEL_BIN=${pkgs.fuzzel}/bin/fuzzel"
         "CROSSHAIR_BIN=${desktopControlCrosshair}/bin/desktop-control-crosshair"
         "POINTER_BIN=${desktopControlPointer}/bin/desktop-control-pointer"

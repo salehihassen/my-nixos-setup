@@ -6,26 +6,27 @@ script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly repo_dir="$(realpath "$script_dir/..")"
 readonly source_dir="$repo_dir/dotfiles"
 readonly target_dir="${HOME:-}"
-readonly -a packages=(
-  bash
-  git
-  ghostty
-  misc-scripts
-  neovim
-  niri
-  noctalia
-  ssh
-  tmux
-  wallpapers
-)
+# Home Manager sets this per composition. Direct invocations without a profile
+# retain the historical all-packages default for existing shell helpers.
+read -r -a packages <<< "${DOTFILES_STOW_PACKAGES-bash git ghostty misc-scripts neovim niri noctalia ssh tmux wallpapers}"
+for package in "${packages[@]}"; do
+  if [[ ! "$package" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]]; then
+    printf 'Invalid Stow package name: %s\n' "$package" >&2
+    exit 1
+  fi
+done
+readonly -a packages
+
 
 usage() {
   cat <<'EOF'
 Usage: stow-dotfiles.sh [--dry-run | --delete]
 
-  (no option)  Restow all managed packages.
+  (no option)  Restow packages selected by DOTFILES_STOW_PACKAGES.
   --dry-run    Show verbosely what restowing would change.
-  --delete     Remove links owned by all managed packages.
+  --delete     Remove links owned by the selected packages.
+
+Unset DOTFILES_STOW_PACKAGES defaults to all historical packages.
 EOF
 }
 
@@ -132,4 +133,6 @@ case "$mode" in
     ;;
 esac
 
-stow "${stow_args[@]}" "${packages[@]}"
+if (( ${#packages[@]} )); then
+  stow "${stow_args[@]}" "${packages[@]}"
+fi
