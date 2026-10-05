@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
+      - name: Check Caddy plugin source hash
+        # Fail on a stale custom-source hash before downloading the full desktop.
+        run: nix build '.#nixosConfigurations.j2.config.services.caddy.package.src' --no-link -L
       - name: Import DisplayLink source ZIP
         # requireFile needs this exact name and hash in the runner's Nix store.
         run: |

@@ -249,6 +249,21 @@ sudo nixos-rebuild build --flake /etc/nixos#j2
 sudo nixos-rebuild switch --flake /etc/nixos#j2
 ```
 
+J2's custom Caddy/Porkbun source has a fixed-output hash in
+`hosts/j2-t3code.nix`. Recheck it after changing Nixpkgs, Go, or plugin versions.
+A successful ordinary build can reuse previously cached source even when a
+fresh CI build would produce a different hash. With the source already built,
+force a fresh verification using:
+
+```bash
+nix build .#nixosConfigurations.j2.config.services.caddy.package.src \
+  --rebuild --no-link -L
+```
+
+If this reports a hash mismatch, investigate the dependency changes, update the
+source hash to the verified result, and rebuild j2. CI checks this source before
+downloading/building the full desktop so failures surface earlier.
+
 The repo follows `nixos-unstable` and Home Manager's default development branch,
 with exact revisions in `flake.lock`. Updating the lock file does not activate
 anything. Commit a working lock file along with the configuration changes.
