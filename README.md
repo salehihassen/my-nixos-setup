@@ -294,7 +294,7 @@ dotfiles-stow
 dotfiles-unstow
 ```
 
-The portable module selects Bash, Git, Neovim, SSH, and tmux. The desktop
+The portable module selects Bash, Git, Neovim, and tmux. The desktop
 module adds Ghostty, Niri, Noctalia, wallpapers, and miscellaneous desktop
 scripts. Modules compose the `dotfiles.stowPackages` list; activation and new
 login shells receive its space-separated `DOTFILES_STOW_PACKAGES` value.
@@ -302,14 +302,17 @@ A direct script invocation with that variable unset retains the old all-packages
 default. For a fresh portable-only dry run, specify it explicitly:
 
 ```bash
-DOTFILES_STOW_PACKAGES='bash git neovim ssh tmux' bash scripts/stow-dotfiles.sh --dry-run
+DOTFILES_STOW_PACKAGES='bash git neovim tmux' bash scripts/stow-dotfiles.sh --dry-run
 ```
 
 Removing a module does not automatically unstow its existing editable files.
 To remove only old desktop links, run the script with the desktop package list
-and `--delete`; it removes Stow-owned links, not the source files. Shared SSH
-settings and personal Bash aliases remain part of portable; review them before
-using it on a server or work machine.
+and `--delete`; it removes Stow-owned links, not the source files. Personal Bash
+aliases remain part of portable; review them before using it on a server or work machine.
+
+`~/.ssh/config` and `~/.ssh/config.local` are local files, unmanaged by NixOS or
+Stow. Put `Include ~/.ssh/config.local` at the top of `~/.ssh/config` to load
+private settings; a missing include file is ignored. Home Manager enables the SSH agent.
 
 ## Add a NixOS machine
 
@@ -605,7 +608,7 @@ VM disks before using the destructive mode on valuable hardware.
 Restore these manually after installation:
 
 - User and root passwords.
-- SSH keys and `~/.ssh/config.local`.
+- SSH keys, `~/.ssh/config`, and `~/.ssh/config.local`.
 - `~/.bash_secrets` and API credentials.
 - Rclone configuration and Tailscale login.
 - Browser profiles and application data.

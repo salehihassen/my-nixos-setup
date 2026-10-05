@@ -22,7 +22,6 @@
       "bash"
       "git"
       "neovim"
-      "ssh"
       "tmux"
     ];
 

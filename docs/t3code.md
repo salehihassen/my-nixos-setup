@@ -58,6 +58,14 @@ with mode 600. Machine addresses are discovered into
 `/run/t3code-caddy/addresses.env` at each Caddy start. Neither is in Git or the
 Nix store. Caddy certificates/state live in `/var/lib/caddy`.
 
+For initial setup with credentials staged in `~/.local/share/t3code-provisioning/porkbun.env`, run:
+
+```sh
+sudo bash /etc/nixos/scripts/activate-t3code.sh
+```
+
+The helper installs the credentials, rebuilds and switches, then removes the staged credentials after success.
+
 ## Update or switch channel
 
 Automatic application updates are disabled. The packaging flake tracks upstream

@@ -8,7 +8,7 @@ readonly source_dir="$repo_dir/dotfiles"
 readonly target_dir="${HOME:-}"
 # Home Manager sets this per composition. Direct invocations without a profile
 # retain the historical all-packages default for existing shell helpers.
-read -r -a packages <<< "${DOTFILES_STOW_PACKAGES-bash git ghostty misc-scripts neovim niri noctalia ssh tmux wallpapers}"
+read -r -a packages <<< "${DOTFILES_STOW_PACKAGES-bash git ghostty misc-scripts neovim niri noctalia tmux wallpapers}"
 for package in "${packages[@]}"; do
   if [[ ! "$package" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]]; then
     printf 'Invalid Stow package name: %s\n' "$package" >&2
