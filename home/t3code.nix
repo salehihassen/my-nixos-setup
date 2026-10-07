@@ -17,7 +17,7 @@ in {
   services.t3code = {
     enable = true;
     # Change these two values to select stable/nightly and source/prebuilt.
-    channel = "nightly";
+    channel = "stable";
     packageVariant = "source";
     host = "127.0.0.1";
     port = 3773;

@@ -1,6 +1,6 @@
 # T3 Code on J2
 
-J2 runs the nightly source server from the independently pinned
+J2 runs the alpha source server (`channel = "stable"`) from the independently pinned
 `t3-code-nix` flake. Configure the channel, source/prebuilt variant, or package
 override in `home/t3code.nix`. The desktop client is not installed.
 
