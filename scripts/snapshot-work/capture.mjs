@@ -114,6 +114,16 @@ export function gallery(report) {
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'"><title>Work capture ${escape(report.startedAt)}</title><style>body{font:16px system-ui;margin:2rem;max-width:1500px;background:#15191e;color:#e5e7eb}a{color:#8ac7ff}img{max-width:100%;height:auto}article{border:1px solid #48505b;padding:1rem;break-inside:avoid;margin-bottom:1rem}section{columns:2 420px}pre,small,p{overflow-wrap:anywhere}li{margin:.6rem 0}details{padding:.7rem;border-bottom:1px solid #48505b}summary{cursor:pointer}</style><h1>Work capture</h1><p>${escape(report.startedAt)} · ${escape(report.status)}</p><p>${escape(report.summary || '')}</p><p>Screenshots are visual references, not saved document buffers. Session files can lag live tabs and drafts.</p><ul>${[...report.errors,...report.warnings].map(e=>`<li>${escape(e)}</li>`).join('')}</ul><p><a href="manifest.json">Machine-readable manifest</a> · <a href="browser-inventory.json">Browser inventory</a> · <a href="#desktop">Desktop layout</a> · <a href="#tabs">Browser tabs</a></p><h2>Screenshots</h2><section>${cards||'<p>No screenshots captured.</p>'}</section><h2 id="desktop">Desktop window inventory</h2>${workspaces}<h2 id="tabs">Saved browser session inventory</h2>${inventories}</html>`;
 }
 
+// Tab cycling prefers capture-keys, the setgid helper that can only send
+// Ctrl+Tab/Ctrl+Shift+Tab (NixOS desktop-control module); elsewhere ydotool.
+async function cycleTab(direction) {
+  try {
+    await run('capture-keys',[direction]);
+  } catch(e) {
+    if(direction==='tab-next') await run('ydotool',['key','29:1','15:1','15:0','29:0']);
+    else await run('ydotool',['key','29:1','42:1','15:1','15:0','42:0','29:0']);
+  }
+}
 async function run(command, args, options={}) {
   const result = await execFile(command,args,{timeout:15000,maxBuffer:32*1024*1024,...options});
   return result.stdout;
@@ -328,7 +338,7 @@ closes a window, saves a document, or unlocks the desktop. See README.md.`);retu
           const next=async()=>{
             const current=await query('focused-window');
             if(current?.id!==w.id)throw Error(`Focus moved away from browser ${w.id}; refusing keyboard input`);
-            await run('ydotool',['key','29:1','15:1','15:0','29:0']);
+            await cycleTab('tab-next');
             advances++;
           };
           try {
@@ -355,7 +365,7 @@ closes a window, saves a document, or unlocks the desktop. See README.md.`);retu
               if(current?.id===w.id){
                 for(let i=0;i<advances;i++){
                   if((await query('focused-window'))?.id!==w.id){report.warnings.push(`Browser ${w.id}: tab restoration stopped because focus changed`);break;}
-                  await run('ydotool',['key','29:1','42:1','15:1','15:0','42:0','29:0']);await sleep(90);
+                  await cycleTab('tab-prev');await sleep(90);
                 }
                 await sleep(delay);
               }else report.warnings.push(`Browser ${w.id}: original tab not restored because focus changed`);

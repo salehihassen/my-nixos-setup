@@ -25,7 +25,7 @@ export function request(op, args = {}) {
     });
     socket.on('error', (error) => {
       if (error.code === 'ECONNREFUSED' || error.code === 'ENOENT') {
-        reject(new Error('Desktop control is stopped. Start it explicitly with systemctl --user start desktop-control.service.'));
+        reject(new Error('Desktop control is stopped. Start it explicitly with systemctl start desktop-control.service.'));
       } else reject(error);
     });
     socket.on('close', () => {

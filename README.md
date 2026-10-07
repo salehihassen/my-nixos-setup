@@ -76,10 +76,16 @@ location requires a switch. Deleting the checkout breaks these commands. Git
 supplies their source history and rollback.
 
 Stow continues to own editable application preferences. Home Manager must not
-generate the same Niri KDL or other files that Stow links. Desktop-control uses
-checkout scripts only, exposed as `desktop-control-stop`,
-`desktop-control-service`, and `desktop-control-mcp`. Privileged host services
-continue to run packaged executables.
+generate the same Niri KDL or other files that Stow links. Desktop-control (AI
+computer use) splits into an opt-in NixOS module (`modules/desktop-control.nix`,
+the privilege boundary) and a portable Home Manager module
+(`home/desktop-control.nix`, the pi/MCP/stop client pieces). On NixOS the
+service runs as a locked-down system service: the desktop user is not in the
+ydotool group, so every input injection must come through the fuzzel-approved
+service. Start it with `systemctl start desktop-control.service` (passwordless
+via polkit); stop with `desktop-control-stop`. A setgid `capture-keys` helper
+can only send the two tab-cycling chords for screen captures — nothing else.
+The checkout scripts stay editable; only the privilege boundary is declarative.
 
 Snapshot capture is a separate Home Manager module. `desktop.nix` does not import
 it. A machine explicitly composes:
@@ -120,9 +126,10 @@ from this repository after switching.
 
 The launcher supplies Node.js, Niri's CLI, grim, wl-clipboard, and ydotool. It does
 not start a privileged daemon, restart browsers, reboot, or schedule captures.
-Set `home.sessionVariables.YDOTOOL_SOCKET` for the host's daemon socket;
-desktop-control and snapshots share it. A capture can override it in its caller
-environment.
+Tab cycling prefers the host's `capture-keys` helper (installed setgid by the
+NixOS desktop-control module) and falls back to direct ydotool where the user
+still has socket access. Set `home.sessionVariables.YDOTOOL_SOCKET` for the
+host's daemon socket; a capture can override it in its caller environment.
 
 Standalone Linux gets Niri user units and portals from the desktop module;
 NixOS retains system integration through its Niri module. Ubuntu still needs
@@ -179,7 +186,15 @@ activating it on another machine:
 6. Enable optional unfree packages only on the host that needs them. Claude Code
    and its unfree allowance are intentionally specific to `j2`; the template's
    commented allowance is only for optional DisplayLink support.
-7. Set the target user's password with `passwd` and restore secrets separately.
+7. AI desktop control is off everywhere unless a host opts in. To enable it,
+   import `../modules/desktop-control.nix` in `hosts/<host>.nix`, set
+   `services.desktop-control.enable = true;`, and add `home/desktop-control.nix`
+   to that host's `homeModules` in `flake.nix`. The module assumes the desktop
+   user has UID 1000 (the typical NixOS first user); on multi-user machines set
+   `services.desktop-control.uid` to that user's real UID (`id -u`). Non-NixOS
+   machines get the client pieces from the Home Manager module alone, but need
+   a restricted ydotool daemon set up on the host (see the module comments).
+8. Set the target user's password with `passwd` and restore secrets separately.
 
 `configuration.nix` sets `system.stateVersion`, and `home/portable.nix` sets
 `home.stateVersion`, both to `25.11`. These select compatibility defaults; they
@@ -397,11 +412,10 @@ This selects portable Home Manager by default. Do not copy J2's disk UUIDs or
 the desktop template's Niri, DisplayLink, UEFI, or Btrfs Docker assumptions.
 
 Every host made with `mkHostFor` also imports `configuration.nix`, which
-currently enables NetworkManager, systemd-resolved, OpenSSH with password and
-keyboard-interactive authentication, and Docker. It puts the user in `wheel`
-and `docker`. This is a shared development baseline, not a minimal server
-profile; review it against the VPS provider's networking and your intended
-services.
+currently enables NetworkManager, systemd-resolved, OpenSSH, and Docker. It
+puts the user in `wheel` and `docker`. This is a shared development baseline,
+not a minimal server profile; review it against the VPS provider's networking
+and your intended services.
 
 Add your public SSH key in the host module:
 
@@ -411,13 +425,12 @@ users.users.your-user.openssh.authorizedKeys.keys = [
 ];
 ```
 
-Verify a separate key-based login before disabling password authentication.
-Since the shared configuration sets those options directly, a host-specific
-override needs `lib.mkForce` (and `{ lib, ... }:` in the host module arguments):
+The shared configuration allows key-based SSH login only. If a host needs
+password authentication, enable it in the host module:
 
 ```nix
-services.openssh.settings.PasswordAuthentication = lib.mkForce false;
-services.openssh.settings.KbdInteractiveAuthentication = lib.mkForce false;
+services.openssh.settings.PasswordAuthentication = true;
+services.openssh.settings.KbdInteractiveAuthentication = true;
 ```
 
 Build first, then apply from the VPS with the provider console available while

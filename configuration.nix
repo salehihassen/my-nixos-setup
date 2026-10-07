@@ -48,8 +48,12 @@
 
     settings = {
       PermitRootLogin = "no";
-      PasswordAuthentication = true;
-      KbdInteractiveAuthentication = true;
+      # Key-only auth by default. Hosts that deliberately need password
+      # auth (e.g. b1's public-IP VMs) opt in explicitly in their host module.
+      # sshd stays enabled here so Tailscale devices can reach j2 and other
+      # physical machines with enrolled keys; firewall exposure is per-host.
+      PasswordAuthentication = pkgs.lib.mkDefault false;
+      KbdInteractiveAuthentication = pkgs.lib.mkDefault false;
     };
   };
 

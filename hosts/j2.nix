@@ -5,6 +5,7 @@
     ./j2-hardware.nix
     ../home/protonvpn-toggle.nix
     ./j2-t3code.nix
+    ../modules/desktop-control.nix
   ];
 
   # Overlays for PRs in flight ===========================================
@@ -171,9 +172,8 @@
   # DISPLAY / AUDIO / APPS / LOGIN  =================
   # Niri tiling compositor
   programs.niri.enable = true;
-  # Virtual input for the opt-in, locally approved desktop-control service.
-  programs.ydotool.enable = true;
-  programs.ydotool.group = "nixcfg";
+  # Opt-in, locally approved AI desktop control (fuzzel-gated virtual input).
+  services.desktop-control.enable = true;
   # Wayland first login manager
   services.greetd.enable = true;
   # Graphical greetd greeter
