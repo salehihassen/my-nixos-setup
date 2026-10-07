@@ -110,20 +110,24 @@ alias workaround-noctalia='pkill -TERM -f "(^|/)noctalia$" 2>/dev/null || true; 
 
 # NixOS =========================================
 
-alias n-build="sudo nixos-rebuild build --flake .#j2 --max-jobs 2 --cores 4"
-alias n-dry-build="sudo nixos-rebuild dry-build --flake .#j2"
+# These work from any directory. Without a "#<host>" suffix, nixos-rebuild
+# picks nixosConfigurations.<current hostname> from the flake.
 
-# check nixos config syntax
-alias n-check="nix config check"
+# build only (no root needed); leaves ./result in the current directory
+alias n-build='nixos-rebuild build --flake "${DOTFILES_ROOT:-/etc/nixos}" --max-jobs 2 --cores 4'
+alias n-dry-build='nixos-rebuild dry-build --flake "${DOTFILES_ROOT:-/etc/nixos}"'
+
+# evaluate every flake output (all hosts, homes, checks) without building
+alias n-check='nix flake check --no-build "${DOTFILES_ROOT:-/etc/nixos}"'
 
 # build and set as default boot but don't activate it rn
-alias n-boot="sudo nixos-rebuild boot --flake .#j2"
+alias n-boot='sudo nixos-rebuild boot --flake "${DOTFILES_ROOT:-/etc/nixos}"'
 
 # build and activate this gen rn, but dont make it default boot yet
-alias n-test="sudo nixos-rebuild test --flake .#j2"
+alias n-test='sudo nixos-rebuild test --flake "${DOTFILES_ROOT:-/etc/nixos}"'
 
 # build, activate it, and make default boot
-alias n-switch="sudo nixos-rebuild switch --flake .#j2 --max-jobs 2 --cores 4"
+alias n-switch='sudo nixos-rebuild switch --flake "${DOTFILES_ROOT:-/etc/nixos}" --max-jobs 2 --cores 4'
 
 # Reconcile the live home-directory links without rebuilding NixOS.
 dotfiles-stow() {

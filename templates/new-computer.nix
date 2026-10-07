@@ -11,6 +11,31 @@
   hardware.bluetooth.enable = lib.mkDefault true;
   services.automatic-timezoned.enable = lib.mkDefault true;
 
+  # Remote access (SSH, RDP, etc.) is reachable only over Tailscale. Run
+  # `sudo tailscale up` after the first boot to join the tailnet.
+  services.tailscale.enable = lib.mkDefault true;
+  networking.firewall = {
+    enable = true;
+    trustedInterfaces = [ config.services.tailscale.interfaceName ];
+    allowedUDPPorts = [ config.services.tailscale.port ];
+    checkReversePath = lib.mkDefault "loose";
+  };
+  services.openssh.openFirewall = false;
+
+  # Fail the build if any module opens a non-Tailscale port. If a LAN port is
+  # really needed, open it on a specific interface via
+  # networking.firewall.interfaces.<name>.allowedTCPPorts instead.
+  assertions = [
+    {
+      assertion =
+        config.networking.firewall.allowedTCPPorts == [ ]
+        && config.networking.firewall.allowedTCPPortRanges == [ ]
+        && config.networking.firewall.allowedUDPPorts == [ config.services.tailscale.port ]
+        && config.networking.firewall.allowedUDPPortRanges == [ ];
+      message = "This host only allows inbound access over Tailscale; a module opened a global firewall port.";
+    }
+  ];
+
   boot.loader.systemd-boot.enable = lib.mkDefault false;
   boot.loader.grub = {
     enable = lib.mkDefault true;
@@ -38,7 +63,7 @@
 
   programs.niri.enable = lib.mkDefault true;
   services.greetd.enable = lib.mkDefault true;
-  programs.regreet = {
+  services.displayManager.regreet = {
     enable = lib.mkDefault true;
     cageArgs = [ "-s" "-d" "-m" "extend" ];
   };

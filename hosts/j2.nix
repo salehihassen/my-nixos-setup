@@ -45,6 +45,24 @@
     checkReversePath = false;
   };
 
+  # Remote access (SSH, RDP, etc.) is reachable only over Tailscale, which is
+  # trusted above. Don't open sshd on LAN/Wi-Fi interfaces.
+  services.openssh.openFirewall = false;
+
+  # Fail the build if any module opens a non-Tailscale port. If a LAN port is
+  # really needed, open it on a specific interface via
+  # networking.firewall.interfaces.<name>.allowedTCPPorts instead.
+  assertions = [
+    {
+      assertion =
+        config.networking.firewall.allowedTCPPorts == [ ]
+        && config.networking.firewall.allowedTCPPortRanges == [ ]
+        && config.networking.firewall.allowedUDPPorts == [ config.services.tailscale.port ]
+        && config.networking.firewall.allowedUDPPortRanges == [ ];
+      message = "j2 only allows inbound access over Tailscale; a module opened a global firewall port.";
+    }
+  ];
+
   # Force tailscaled to use nftables and avoid iptables-compat translation issues.
   systemd.services.tailscaled.serviceConfig.Environment = [
     "TS_DEBUG_FIREWALL_MODE=nftables"

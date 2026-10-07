@@ -11,6 +11,15 @@
   nix.settings.extra-substituters = [ "https://noctalia.cachix.org" ];
   nix.settings.extra-trusted-public-keys = [ "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=" ];
 
+  # Drop old generations weekly; GRUB only lists the newest 10 anyway.
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 30d";
+  };
+  # Hard-link identical store files to save space.
+  nix.settings.auto-optimise-store = true;
+
   # NETWORKING =============================================================
 
   # networking.hostName = "nixos"; # Define your hostname.
