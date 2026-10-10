@@ -46,6 +46,9 @@
     # Backups
     borgbackup
 
+    # Games
+    steam-run
+
     # Keyboard firmware
     qmk
     dos2unix
