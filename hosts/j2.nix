@@ -172,6 +172,10 @@
   # DISPLAY / AUDIO / APPS / LOGIN  =================
   # Niri tiling compositor
   programs.niri.enable = true;
+  programs.nautilus-open-any-terminal = {
+    enable = true;
+    terminal = "ghostty";
+  };
   # Opt-in, locally approved AI desktop control (fuzzel-gated virtual input).
   services.desktop-control.enable = true;
   # Wayland first login manager
