@@ -148,7 +148,7 @@ alias n-update-home="nix flake update nixpkgs home-manager && nix build '.#nixos
 
 # Misc apps =======================================
 
-alias technic='nix shell --inputs-from "${DOTFILES_ROOT:-/etc/nixos}" nixpkgs#jdk8 -c steam-run java -jar "$HOME/apps/gaming/technic/TechnicLauncher.jar"'
+alias technic='(cd "$HOME/apps/gaming/technic" && nix shell --inputs-from "${DOTFILES_ROOT:-/etc/nixos}" nixpkgs#jdk8 -c steam-run java -jar TechnicLauncher.jar)'
 
 public-upload-file() {
   if (( $# < 1 || $# > 2 )); then

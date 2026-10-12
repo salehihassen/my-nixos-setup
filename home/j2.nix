@@ -47,7 +47,17 @@
     borgbackup
 
     # Games
-    steam-run
+    (steam.override {
+      # Older LWJGL versions query display modes through this command.
+      extraPkgs = pkgs: [ pkgs.xrandr ];
+      # Downloaded Java and Minecraft natives need these at runtime.
+      extraLibraries = pkgs: with pkgs; [
+        libxtst
+        libxxf86vm
+        alsa-lib
+        libpulseaudio
+      ];
+    }).run
 
     # Keyboard firmware
     qmk
