@@ -79,7 +79,7 @@ export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@
 
 alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
 alias codex-stock='codex-danger'
-alias co='codex-danger --profile cliproxy'
+alias co='codex-danger --no-daemon --profile cliproxy'
 alias codex-custom='codex --yolo --profile codex-custom'
 alias oc='opencode-danger'
 alias cc='claude --dangerously-skip-permissions'
