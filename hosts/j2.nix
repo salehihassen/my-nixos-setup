@@ -192,6 +192,9 @@
   systemd.services.dlm.wantedBy = [ "multi-user.target" ];
 
   security.polkit.enable = true;
+  # GParted launches through pkexec; enabling polkit alone does not install
+  # its setuid wrapper.
+  security.polkit.enablePkexecWrapper = true;
 
   # Enable AppImages
   programs.appimage.enable = true;
