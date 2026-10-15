@@ -197,6 +197,17 @@
                 node --test ${./scripts/snapshot-work}/capture.test.mjs
                 touch "$out"
               '';
+          capture-target-tests =
+            pkgs.runCommand "capture-target-tests" {
+              nativeBuildInputs = [ pkgs.nodejs_24 pkgs.inotify-tools ];
+            } ''
+              mkdir -p scripts dotfiles/noctalia/.local/share/noctalia/plugins
+              cp ${./scripts/capture-target.test.mjs} scripts/capture-target.test.mjs
+              cp ${./scripts/capture-target-monitor.test.mjs} scripts/capture-target-monitor.test.mjs
+              cp -r ${./dotfiles/noctalia/.local/share/noctalia/plugins/capture-target} dotfiles/noctalia/.local/share/noctalia/plugins/capture-target
+              node --test scripts/capture-target.test.mjs scripts/capture-target-monitor.test.mjs
+              touch "$out"
+            '';
           snapshot-wrappers = pkgs.runCommand "snapshot-work-wrappers" { } ''
             ${snapshotCommand "store"} --help > help.txt
             grep -q 'default 5000' help.txt

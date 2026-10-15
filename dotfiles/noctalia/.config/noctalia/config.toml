@@ -16,7 +16,7 @@ enabled = ["noctalia/screen_recorder", "saleh/capture-target"]
 [plugin_settings."noctalia/screen_recorder"]
 # Portal capture includes DisplayLink and unfamiliar office monitors.
 video_source = "portal"
-directory = "~/Videos"
+directory = "~/Videos/Screencast"
 filename_pattern = "recording-%Y-%m-%d_%H-%M-%S"
 audio_source = "none"
 hide_inactive = false

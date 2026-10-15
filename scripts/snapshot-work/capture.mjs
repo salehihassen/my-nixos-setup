@@ -27,14 +27,20 @@ export function windowOrder(windows, workspaces) {
 // A unique match is mandatory; never guess which Chromium window receives keys.
 export function matchBrowserWindow(window, profiles) {
   const title = String(window.title || '').replace(/ [—–-] (Chromium|Google Chrome)(?: .*)?$/, '');
+  const matches = tab => tab?.title === title || `${tab?.title} - Chromium` === window.title;
   const candidates = profiles.flatMap(p => p.windows.map(w => ({profile:p.name,root:p.root,...w})))
-    .filter(w => w.selectedTab?.title === title || `${w.selectedTab?.title} - Chromium` === window.title);
+    // Chromium can persist the selected index later than a live tab switch.
+    // Match against every saved tab, but still require one unique window.
+    .filter(w => matches(w.selectedTab) || (w.tabs || []).some(matches));
   return candidates.length === 1 ? candidates[0] : null;
 }
 
 export async function captureDesktop(io, report, options, captureTabs = async()=>{}) {
   const original = { windows: await io.query('windows'), workspaces: await io.query('workspaces'), outputs: await io.query('outputs') };
   report.desktop = original;
+  if ((await io.query('overview-state')).is_open) {
+    throw Error('Close Niri overview and run capture-work again. No focus changes or browser input were attempted.');
+  }
   const focused = original.windows.find(w=>w.is_focused);
   let changedFocus = false;
   const folderFor = w => {

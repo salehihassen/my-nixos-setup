@@ -50,6 +50,18 @@ test('browser matching refuses ambiguous titles, including identical tabs in sep
   assert.equal(matchBrowserWindow({title:'Draft - Chromium'},p),null);
 });
 
+test('browser matching tolerates a stale selected index without guessing between duplicate tabs',()=>{
+  const profiles=[{name:'Default',windows:[
+    {id:1,selectedTab:{title:'Earlier tab'},tabs:[{title:'Earlier tab'},{title:'Current work'}]},
+    {id:2,selectedTab:{title:'Different window'},tabs:[{title:'Different window'}]},
+  ]}];
+  assert.equal(matchBrowserWindow({title:'Current work - Chromium'},profiles).id,1);
+  profiles[0].windows[1].tabs.push({title:'Current work'});
+  assert.equal(matchBrowserWindow({title:'Current work - Chromium'},profiles),null);
+  profiles[0].windows[1].selectedTab={title:'Current work'};
+  assert.equal(matchBrowserWindow({title:'Current work - Chromium'},profiles),null);
+});
+
 function fixture({failWindow,failProbe=false,interruptAt}={}){
   const windows=[
     {id:4,workspace_id:20,app_id:'editor',is_focused:false,layout:{pos_in_scrolling_layout:[1,1]}},
@@ -60,7 +72,7 @@ function fixture({failWindow,failProbe=false,interruptAt}={}){
   const workspaces=[{id:10,idx:1,output:'DP-1',is_active:true,active_window_id:2},{id:11,idx:2,output:'DP-1',is_active:false,active_window_id:3},{id:20,idx:1,output:'eDP-1',is_active:true,active_window_id:4},{id:21,idx:2,output:'eDP-1',active_window_id:null}];
   const calls=[];let checks=0;
   const io={
-    query:async name=>({windows,workspaces,outputs:{'DP-1':{},'eDP-1':{}}})[name],
+    query:async name=>({windows,workspaces,outputs:{'DP-1':{},'eDP-1':{}},'overview-state':{is_open:false}})[name],
     focus:async(id,restore=false)=>calls.push(['focus',id,restore]),
     workspace:async id=>calls.push(['workspace',id]),
     windowShot:async(id,file)=>{calls.push(['window',id,file]);if((failProbe&&file.endsWith('probe.png'))||(id===failWindow&&!file.endsWith('probe.png')))throw Error('blocked screenshot');},
@@ -95,6 +107,15 @@ test('lock-screen screenshot refusal aborts before focus changes or browser inpu
   const {io,report,calls}=fixture({failProbe:true});let inputs=0;
   await assert.rejects(()=>captureDesktop(io,report,{context:true},async()=>inputs++),/blocked/);
   assert.equal(inputs,0);assert.equal(calls.filter(c=>c[0]==='focus').length,0);
+});
+
+test('open overview aborts before screenshots, focus changes or browser input',async()=>{
+  const {io,report,calls}=fixture();let inputs=0;
+  const query=io.query;
+  io.query=async name=>name==='overview-state'?{is_open:true}:query(name);
+  await assert.rejects(()=>captureDesktop(io,report,{context:true},async()=>inputs++),/Close Niri overview/);
+  assert.equal(inputs,0);assert.deepEqual(calls,[]);
+  assert.equal(report.desktop.windows.length,4);
 });
 
 test('interruption preserves partial captures and still restores focus',async()=>{

@@ -1,6 +1,12 @@
--- One query per second for the whole session, shared by every bar instance.
-local command = [[node "${NOCTALIA_DATA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}}/noctalia/plugins/capture-target/status.mjs"]]
-local pending = false
+-- One persistent stream for the session, shared by every bar instance.
+-- Noctalia terminates this entire process group on reload or plugin disable.
+-- Restart only after an unexpected monitor exit, with an explicit unknown state.
+local command = [[while :; do
+    "$HOME/.local/bin/capture-target-monitor"
+    printf '%s\n' '{"text":"Capture ?","tone":"error","tooltip":"Capture monitor exited; retrying. Capture may still be running."}'
+    sleep 5
+done]]
+local started = false
 
 local function unavailable()
     noctalia.state.set("status", {
@@ -11,18 +17,17 @@ local function unavailable()
 end
 
 function update()
-    noctalia.setUpdateInterval(1000)
-    if pending then return end
-    pending = true
-    local started = noctalia.runAsync(command, function(result)
-        pending = false
-        if result.exitCode ~= 0 then unavailable(); return end
-        local ok, status = pcall(noctalia.json.decode, result.stdout)
+    -- The host requires an update interval; this tick only retries a failed
+    -- initial launch. Successful streams publish changes without timer polling.
+    noctalia.setUpdateInterval(60000)
+    if started then return end
+    started = noctalia.runStream(command, function(line)
+        local ok, status = pcall(noctalia.json.decode, line)
         if ok and type(status) == "table" and type(status.text) == "string" then
             noctalia.state.set("status", status)
         else
             unavailable()
         end
     end)
-    if not started then pending = false; unavailable() end
+    if not started then unavailable() end
 end

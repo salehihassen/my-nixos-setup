@@ -1,9 +1,4 @@
-import { execFile } from 'node:child_process';
-import { readFile, readdir, realpath } from 'node:fs/promises';
-import { promisify } from 'node:util';
-import { pathToFileURL } from 'node:url';
-
-const exec = promisify(execFile);
+// Pure status formatting shared by the persistent monitor and its tests.
 const aliases = {
   'Acer Technologies KB272 0x12505FA0': 'middle',
   'DLOGIC Ltd. No Monitor USB_6000-4310': 'middle',
@@ -139,50 +134,6 @@ export function summarize({ casts, outputs = {}, windows = [], graph = [], proce
   };
 }
 
-async function jsonCommand(command, args) {
-  const { stdout } = await exec(command, args, { timeout: 1800, maxBuffer: 8 * 1024 * 1024 });
-  return JSON.parse(stdout);
-}
-
-// lsof supplies process/device ownership without opening the camera ourselves.
-// Ignore memory mappings and PipeWire's device ownership: the stock privacy
-// widget already detects actual capture through PipeWire links.
-export function cameraUsers(output) {
-  const users = [];
-  let pid, app, descriptor = false;
-  for (const line of output.split('\n')) {
-    if (line.startsWith('p')) { pid = line.slice(1); app = ''; descriptor = false; }
-    else if (line.startsWith('c')) app = singleLine(line.slice(1));
-    else if (line.startsWith('f')) descriptor = /^f\d+$/.test(line);
-    else if (line.startsWith('n') && descriptor && /^\/dev\/video\d+$/.test(line.slice(1))
-      && app && !/^(pipewire(?:-pulse)?|wireplumber)$/.test(app)) {
-      const device = line.slice(1);
-      if (!users.some(user => user.pid === pid && user.device === device)) users.push({ pid, app, device });
-    }
-  }
-  return users;
-}
-
-async function readCameraUsers() {
-  let devices;
-  try { devices = await readdir('/sys/class/video4linux'); }
-  catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-  // UVC index 0 is the capture endpoint; index 1 is usually metadata.
-  const cameras = (await Promise.all(devices.filter(name => /^video\d+$/.test(name)).map(async name => {
-    try { return (await readFile(`/sys/class/video4linux/${name}/index`, 'utf8')).trim() === '0' ? `/dev/${name}` : null; }
-    catch { return null; } // Device may have been unplugged during the scan.
-  }))).filter(Boolean);
-  if (!cameras.length) return [];
-  try {
-    const { stdout } = await exec('lsof', ['-n', '-w', '-Fpcfn', ...cameras], { timeout: 1800, maxBuffer: 1024 * 1024 });
-    return cameraUsers(stdout);
-  } catch (error) {
-    // lsof returns 1 when any requested device has no open descriptors.
-    if (error.code === 1) return cameraUsers(error.stdout || '');
-    throw error;
-  }
-}
-
 export function withCamera(status, users) {
   if (users === null) return {
     ...status, text: `Camera status unavailable | ${status.text}`, tone: 'error', cameraUnavailable: true,
@@ -223,34 +174,4 @@ export function panelStatus(status) {
     if (status.cameraActive && status.text.includes('Capture status unavailable')) text = 'CAM+Capture?';
   }
   return { ...status, text: shorten(text, 12) };
-}
-
-export async function readStatus() {
-  const casts = await jsonCommand('niri', ['msg', '--json', 'casts']);
-  if (!Array.isArray(casts)) throw new Error('Invalid Niri cast response');
-  if (!casts.length) return summarize({ casts });
-  const [outputs, windows, graph] = await Promise.allSettled([
-    jsonCommand('niri', ['msg', '--json', 'outputs']),
-    jsonCommand('niri', ['msg', '--json', 'windows']),
-    jsonCommand('pw-dump', []),
-  ]);
-  const processNames = {};
-  await Promise.all(casts.filter(cast => cast.is_active && cast.pid != null).map(async cast => {
-    try { processNames[cast.pid] = (await readFile(`/proc/${cast.pid}/comm`, 'utf8')).trim(); } catch {}
-  }));
-  return summarize({
-    casts, processNames,
-    outputs: outputs.status === 'fulfilled' ? outputs.value : {},
-    windows: windows.status === 'fulfilled' ? windows.value : [],
-    graph: graph.status === 'fulfilled' ? graph.value : [],
-  });
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(await realpath(process.argv[1])).href) {
-  const [capture, camera] = await Promise.allSettled([readStatus(), readCameraUsers()]);
-  const status = capture.status === 'fulfilled' ? capture.value : {
-      text: 'Capture status unavailable', tone: 'error',
-      tooltip: 'Could not query Niri screencasts. Capture may still be running.',
-  };
-  console.log(JSON.stringify(panelStatus(withCamera(status, camera.status === 'fulfilled' ? camera.value : null))));
 }

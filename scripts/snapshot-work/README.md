@@ -1,13 +1,80 @@
 # Capture laptop work before ending a session
 
+`capture-work` is ordinary local automation: it uses no generative AI, model,
+API key, or inference endpoint. Niri supplies the window list and screenshots;
+the script follows a fixed traversal and switches Chromium tabs with keyboard
+commands. The optional `--cdp` endpoint is a local browser debugger, not an AI
+service. Browser pages may still make their normal network requests when
+selected. Fixed control flow does not guarantee complete live tab coverage:
+the default tab counts come from saved browser sessions, as explained below.
+
+## Home Manager installation
+
 Import `home/snapshot-work.nix` independently of `home/desktop.nix`. The module
 installs `capture-work` in the profile and at `~/.local/bin/capture-work`.
+
+```nix
+{
+  imports = [ ./home/snapshot-work.nix ]; # Adjust relative to your HM file.
+}
+```
+
+Flake consumers can instead import `inputs.<repo>.homeModules.snapshot-work`.
+Importing the module installs the command; there is no separate `.enable`
+option. Omit the import on systems that do not want it. Apply the change with
+your usual Home Manager activation or NixOS rebuild. Removing the module
+removes its managed launcher on activation; saved capture folders remain.
+The module works with NixOS-integrated or standalone Home Manager on Linux,
+but desktop screenshots require a running Niri Wayland session. It does not
+configure a compositor or browser, and does not require the desktop module,
+Noctalia, its capture indicator, or an AI agent.
+
 `programs.snapshot-work.sourceMode = "store"` is the reusable default;
+it packages the scripts in the Nix store and needs no `dotfilesRoot` argument.
 `"checkout"` reads these files from `dotfilesRoot/scripts/snapshot-work` on every
 invocation (j2's choice). Only the launcher/dependency changes need a switch in
 checkout mode. Git tracks live script edits; Home Manager rollback does not.
-No privileged daemon is installed by this module. The host supplies ydotoold;
-set `home.sessionVariables.YDOTOOL_SOCKET` to its permitted socket if needed.
+Checkout mode requires an absolute `dotfilesRoot` passed through
+`extraSpecialArgs` (or `home-manager.extraSpecialArgs` on NixOS).
+
+## Host setup for browser tab switching
+
+The launcher supplies Node.js, Niri CLI, grim, wl-clipboard and the ydotool
+client. Home Manager does not install or configure the privileged `ydotoold`
+daemon. For default keyboard tab capture, the host must provide either:
+
+- A working `capture-keys` helper on `PATH`, supporting `tab-next` and
+  `tab-prev`. On j2, `modules/desktop-control.nix` with
+  `services.desktop-control.enable = true` supplies the daemon and a restricted
+  setgid helper that can only send those two tab-switching chords. The
+  interactive `desktop-control.service`, MCP server, approval UI and inference
+  endpoint do not need to be running for `capture-work`.
+- A running `ydotoold` daemon whose socket the desktop user can access. For a
+  NixOS host using direct ydotool access, the system configuration can use:
+
+  ```nix
+  {
+    programs.ydotool.enable = true;
+    users.users.alice.extraGroups = [ "ydotool" ]; # Use your desktop username.
+  }
+  ```
+
+  Rebuild and log out/in for new group membership. This grants general
+  ydotool input access; j2 uses the restricted helper instead. For a custom
+  socket, set `home.sessionVariables.YDOTOOL_SOCKET` to its path; the wrapper
+  uses that value unless the caller already set the environment variable.
+  Setting a path does not grant access to the socket. On non-NixOS hosts,
+  configure the daemon and device/socket permissions through the host OS.
+
+`--no-tabs` and `--backup-only` need no input-injection helper. An already
+enabled `--cdp` browser debugger also bypasses keyboard tab switching. Per-tab
+capture supports Chrome/Chromium; other applications, including other browser
+families, receive ordinary window screenshots only. The default profile roots
+are `~/.config/chromium`, `~/.config/google-chrome`, and
+`~/.config/google-chrome-beta`. For another profile location, pass its user-data
+root with `--browser-root` (repeatable), not its `Default` subdirectory.
+
+## Running a capture
 
 Run as your desktop user from a normal terminal or SSH session:
 
@@ -25,10 +92,12 @@ The gallery also lists window titles and column/row positions per workspace,
 even when the lock screen prevented screenshots. Browser URLs are clickable.
 Every run gets its own directory. Existing capture directories are never overwritten.
 
-Dependencies: Node.js 22 or newer, Niri with `screenshot-window --id --path`,
-grim, wl-clipboard, and ydotool with an already running daemon for keyboard
-tab capture. The Home Manager launcher supplies these dependencies. The script
-does not install, start, restart or reconfigure any service or browser.
+For manual installation, use Node.js 22 or newer, Niri supporting both
+`screenshot-window --id --path` and `overview-state`, grim, wl-clipboard, and
+the tab-input setup above. Run in an unlocked desktop with overview closed,
+as the same user who owns the Niri session and browser profile; leave input
+idle until completion. The script does not install, start, restart or
+reconfigure any service or browser.
 
 ## Niri traversal
 
@@ -60,8 +129,9 @@ The default works with an already open Chromium, without changing launch flags:
    is still running, so these copies are not an atomic browser snapshot.
 2. Parse the newest Session file into a best-effort tab inventory, with selected
    tabs and navigation URLs. Encrypted/unknown formats are backed up but not parsed.
-3. Uniquely match each Niri Chromium window's active title to a saved browser
-   window. Use that window's saved tab count to capture the current tab, advance
+3. Uniquely match each Niri Chromium window's active title against all saved tabs
+   in each browser window, tolerating a stale saved selected-tab index. Use that
+   window's saved tab count to capture the current tab, advance
    with Ctrl+Tab, and repeat. Reverse the issued advances with Ctrl+Shift+Tab
    afterward to return to the original tab.
 
@@ -109,6 +179,8 @@ multiple sessions, set `NIRI_SOCKET` and `WAYLAND_DISPLAY` explicitly.
 It must run outside an agent sandbox that blocks desktop sockets.
 
 Screen locks can prevent screenshots and focus changes. The script first
+requires Niri overview to be closed; an open overview stops desktop capture
+before screenshots, focus changes or browser input. It then
 checks that Niri actually writes a window PNG; if that fails, it stops desktop
 capture before keyboard input and retains the session backup and failure report.
 It never unlocks, kills or restarts the locker, compositor or browser. CDP
@@ -136,7 +208,9 @@ before ending the desktop session.
 ## Verification
 
 ```sh
-node --test ~/.local/share/work-capture/capture.test.mjs
+# From the repository root:
+node --test scripts/snapshot-work/capture.test.mjs
+nix build 'path:.#checks.x86_64-linux.snapshot-wrappers' --no-link
 ```
 
 Tests cover multi-monitor/workspace traversal, off-screen column ordering,
@@ -145,7 +219,16 @@ ambiguous Chromium windows, truncated SNSS records, navigation history and
 HTML escaping and empty-clipboard restoration. On October 4, 2026, the live
 desktop test captured three windows, eight distinct Chromium tabs, and four
 workspace views on the laptop display; original window focus and browser tab
-were restored. Multiple physical monitors remain covered by simulated tests.
+were restored. Automated tests also cover multiple monitors.
+
+On October 15, 2026, the live three-display test saved all 12 window images,
+19 distinct browser-tab images across four Chromium windows, and 15 workspace
+views, with no failures. Before/after queries confirmed original window focus,
+active workspaces, workspace active windows, and browser tab titles were restored.
+Every saved PNG passed structural checks. The gallery and `verification.json`
+are in `~/Pictures/snapshot-work/2026-10-15T18-12-29.869Z/`. Browser counts still
+come from saved sessions and remain best effort. Overview-open refusal is now
+covered by an automated regression test.
 
 Protocol references:
 

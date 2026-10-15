@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { cameraUsers, castConsumers, monitorLabel, panelStatus, summarize, withCamera } from '../dotfiles/noctalia/.local/share/noctalia/plugins/capture-target/status.mjs';
+import { castConsumers, monitorLabel, panelStatus, summarize, withCamera } from '../dotfiles/noctalia/.local/share/noctalia/plugins/capture-target/status.mjs';
 
 const node = (id, props) => ({ id, type: 'PipeWire:Interface:Node', info: { props } });
 const client = (id, binary, name) => ({
@@ -105,17 +105,6 @@ test('multiple targets remain discoverable without filling the entire panel', ()
   const status = summarize({ casts: [1, 2, 3].map(id => cast(id, { Output: { name: `DP-${id}` } }, null)) });
   assert.equal(status.text, 'CAST · DP-1 | CAST · DP-2 | +1 more');
   assert.match(status.tooltip, /DP-3/);
-});
-
-test('direct camera ownership excludes mappings and PipeWire, and handles multiple cameras/apps', () => {
-  const output = 'p1\ncchromium\nfmem\nn/dev/video4\nf18\nn/dev/video4\nf19\nn/dev/video4\n'
-    + 'p2\ncwireplumber\nf20\nn/dev/video0\np3\ncpipewire\nf21\nn/dev/video0\n'
-    + 'p4\ncobs\nf22\nn/dev/video0\np5\ncfirefox\nfmem\nn/dev/video4\n';
-  assert.deepEqual(cameraUsers(output), [
-    { pid: '1', app: 'chromium', device: '/dev/video4' },
-    { pid: '4', app: 'obs', device: '/dev/video0' },
-  ]);
-  assert.deepEqual(cameraUsers(''), []);
 });
 
 test('camera remains visible alongside screen sharing, with truthful idle and error states', () => {
