@@ -18,13 +18,42 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
-      - name: Check Caddy plugin source hash
-        # Fail on a stale custom-source hash before downloading the full desktop.
-        run: nix build '.#nixosConfigurations.j2.config.services.caddy.package.src' --no-link -L
-      - name: Import DisplayLink source ZIP
-        # requireFile needs this exact name and hash in the runner's Nix store.
+      - name: Use Noctalia binary cache
+        uses: cachix/cachix-action@v17
+        with:
+          name: noctalia
+          skipPush: true
+      - name: Check custom sources and dependency hashes
+        # Always runs, even on cache hits. Also imports the verified DisplayLink
+        # ZIP under the exact name required by requireFile.
+        run: bash .github/ci/check-custom-sources.sh
+      - name: Report personal cache configuration
+        env:
+          CACHE_NAME: ${{ vars.CACHIX_CACHE }}
+          CACHE_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          WEEKLY_AUDIT: ${{ github.event_name == 'schedule' }}
         run: |
-          nix-prefetch-url --name displaylink-630.zip \
-            'https://www.synaptics.com/sites/default/files/exe_files/2026-06/DisplayLink%20USB%20Graphics%20Software%20for%20Ubuntu6.3-EXE.zip' \
-            1670rhm39pqkmfy8kawwx3c79w7y6rd1pkhm698hq1i7fmn8asbj
-      - run: nix build '.#nixosConfigurations.j2.config.system.build.toplevel' --no-link
+          if [[ "$WEEKLY_AUDIT" == true ]]; then
+            echo 'Weekly audit: personal cache disabled; public binary caches remain enabled.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ -z "$CACHE_NAME" ]]; then
+            echo '::notice::Personal cache disabled. Set CACHIX_CACHE and CACHIX_AUTH_TOKEN to enable it.'
+            echo 'Personal cache is not configured; using public binary caches only.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ -z "$CACHE_TOKEN" ]]; then
+            echo '::notice::Personal cache is read-only because CACHIX_AUTH_TOKEN is unavailable.'
+            echo 'Personal cache enabled for downloads only; no write token available.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Personal cache enabled for downloads and uploads.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Reuse and publish custom build outputs
+        # A fresh runner skips this cache weekly. Configure the variable and
+        # secret described in README.md; fork PRs can only read the public cache.
+        if: github.event_name != 'schedule' && vars.CACHIX_CACHE != ''
+        uses: cachix/cachix-action@v17
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skipPush: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+      - name: Build J2
+        # Never skip evaluation/build on a cache hit. Nix still resolves the
+        # current configuration and requires its exact output paths.
+        run: nix build '.#nixosConfigurations.j2.config.system.build.toplevel' --no-link -L

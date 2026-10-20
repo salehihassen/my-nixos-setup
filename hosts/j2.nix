@@ -11,6 +11,17 @@
   # Overlays for PRs in flight ===========================================
   # TODO once merged, remove the below
   nixpkgs.overlays = [
+    (_final: prev: {
+      # Backport https://github.com/niri-wm/niri/issues/4216 to 26.04.
+      # Remove when the packaged release includes upstream commit 0add05d.
+      # Shared by NixOS and Home Manager so both use the patched compositor.
+      niri = prev.niri.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ../patches/niri-popup-redraw.patch ];
+        env = (old.env or { }) // {
+          NIRI_BUILD_COMMIT = "Nixpkgs+popup-redraw-0add05d";
+        };
+      });
+    })
     (final: _prev: {
       displaylink = final.callPackage
         (inputs.displaylinkSrc.outPath + "/pkgs/os-specific/linux/displaylink/default.nix")

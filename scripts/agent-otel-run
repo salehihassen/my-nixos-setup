@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Scope homelab telemetry to one process tree; never source it into the login shell.
+set -euo pipefail
+
+stock=0
+if [[ ${1:-} == --stock ]]; then
+  stock=1
+  shift
+fi
+if (( $# == 0 )); then
+  printf 'Usage: agent-otel-run [--stock] COMMAND [ARG ...]\n' >&2
+  exit 2
+fi
+
+# A stock agent may be launched from inside an instrumented agent's shell tool.
+# Also remove per-signal overrides before configuring the default destination.
+while IFS= read -r name; do
+  case "$name" in
+    OTEL_*|PI_OTEL_*|CLAUDE_CODE_ENABLE_TELEMETRY|CLAUDE_CODE_ENHANCED_TELEMETRY_BETA|ENABLE_ENHANCED_TELEMETRY_BETA|BETA_TRACING_ENDPOINT)
+      unset "$name"
+      ;;
+  esac
+done < <(compgen -e)
+
+if (( stock )); then
+  export PI_OTEL_ENABLED=false
+  export CLAUDE_CODE_ENABLE_TELEMETRY=0
+  export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=0
+  if [[ $1 == claude ]]; then
+    # The daily driver selects CPA through these global shell variables.
+    unset ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN
+    unset ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL
+    unset ANTHROPIC_DEFAULT_HAIKU_MODEL CLAUDE_CODE_SUBAGENT_MODEL
+  fi
+else
+  config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/agent-otel"
+  if [[ ! -r $config_dir/env.sh || ! -r $config_dir/credentials ]]; then
+    printf 'Telemetry configuration missing: %s\n' "$config_dir" >&2
+    exit 1
+  fi
+  . "$config_dir/env.sh"
+  if [[ $1 == claude ]]; then
+    shift
+    exec claude --settings "$config_dir/claude-settings.json" "$@"
+  fi
+fi
+
+exec "$@"

@@ -78,9 +78,32 @@ export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@
 # 3. codex-custom: experiment with several new MCPs. Used rarely and a great space to experiment.
 
 alias codex-danger='codex --dangerously-bypass-approvals-and-sandbox'
-alias codex-stock='codex-danger'
-# Keep each CLIProxy session tied to its terminal instead of the shared daemon.
-alias co='codex-danger --no-daemon --profile cliproxy'
+# Unalias before defining functions, including when this file is sourced again.
+unalias co codex-stock claude claude-stock pi pi-stock 2>/dev/null || true
+
+# Keep credentials and telemetry out of the parent shell and stock launches.
+agent-otel-run() {
+  "${DOTFILES_ROOT:-/etc/nixos}/scripts/agent-otel-run" "$@"
+}
+co() {
+  # The shared daemon must not reuse a stock process's telemetry environment.
+  agent-otel-run codex --dangerously-bypass-approvals-and-sandbox --no-daemon --profile cliproxy "$@"
+}
+codex-stock() {
+  agent-otel-run --stock codex --dangerously-bypass-approvals-and-sandbox "$@"
+}
+claude() {
+  agent-otel-run claude "$@"
+}
+claude-stock() {
+  agent-otel-run --stock claude "$@"
+}
+pi() {
+  agent-otel-run pi "$@"
+}
+pi-stock() {
+  agent-otel-run --stock pi "$@"
+}
 alias codex-custom='codex --yolo --profile codex-custom'
 alias oc='opencode-danger'
 alias cc='claude --dangerously-skip-permissions'
