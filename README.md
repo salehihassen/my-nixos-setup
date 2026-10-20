@@ -276,17 +276,72 @@ nix build .#nixosConfigurations.j2.config.services.caddy.package.src \
 ```
 
 If this reports a hash mismatch, investigate the dependency changes, update the
-source hash to the verified result, and rebuild j2. CI checks this source before
-downloading/building the full desktop so failures surface earlier.
+source hash to the verified result, and rebuild j2. CI forces this verification
+on every run, along with the other custom sources described below.
 
 The repo follows `nixos-unstable` and Home Manager's default development branch,
 with exact revisions in `flake.lock`. Updating the lock file does not activate
 anything. Commit a working lock file along with the configuration changes.
 
 J2 uses a pinned DisplayLink override with a manually supplied vendor ZIP. On a
-fresh builder, use the exact `nix-prefetch-url --name displaylink-630.zip` command
-and hash in `.github/workflows/ci.yml` before building J2. The unfree
+fresh builder, `bash .github/ci/check-custom-sources.sh` downloads, verifies, and
+imports the ZIP under the exact name required by `requireFile`. The unfree
 allowlist alone does not supply that archive.
+
+### CI binary caches and source validation
+
+GitHub Actions uses the public Noctalia cache on every run. To also reuse our own
+compiled packages across runs, configure a public Cachix cache:
+
+1. Sign in at [Cachix](https://app.cachix.org/) and create a public binary cache.
+   Choose a cache name and keep the default Cachix-managed signing.
+2. In that cache's Settings, generate a **per-cache token with write access**.
+3. In this GitHub repository's Settings → Secrets and variables → Actions, add
+   an Actions **variable** named `CACHIX_CACHE` containing the cache name, and an
+   Actions **secret** named `CACHIX_AUTH_TOKEN` containing that token.
+
+Alternatively, set the repository configuration with the GitHub CLI. Replace
+`YOUR_CACHE_NAME`; the second command prompts for the token without putting it
+in shell history:
+
+```bash
+gh variable set CACHIX_CACHE --repo salehihassen/my-nixos-setup --body YOUR_CACHE_NAME
+gh secret set CACHIX_AUTH_TOKEN --repo salehihassen/my-nixos-setup
+```
+
+The workflow reports whether the personal cache is disabled, read-only, or
+enabled for uploads. Without the variable, builds still run using the public
+caches. Without the token, the configured public cache can still be read.
+Fork PRs do not upload. The cache fills as CI builds packages; the first build
+of a new derivation still needs to compile it. See the
+[Cachix setup guide](https://docs.cachix.org/getting-started.html) and
+[Cachix action](https://github.com/cachix/cachix-action).
+
+Cache hits never skip the source checks or the final J2 build. On every run,
+`.github/ci/check-custom-sources.sh` checks the sources listed in
+`.github/ci/custom-sources.nix` **before enabling the personal cache**:
+
+- Freshly download the pinned Compose2nix, DisplayLink packaging, Noctalia,
+  T3 Code packaging, and Zen packaging GitHub archives, and compare their
+  unpacked hashes with `flake.lock`.
+- Freshly download Niri's source, T3 Code's source, Zen's release archive, and
+  the DisplayLink vendor ZIP, and verify their package hashes. These checks
+  contact the original download URLs even if a matching store path exists.
+- Re-run Caddy's plugin fetcher, Compose2nix's Go dependency fetcher, Niri's
+  Cargo vendor fetcher, and T3 Code's pnpm and monitor Cargo vendor fetchers.
+  Substitution is disabled for these fetchers; existing local outputs use
+  `--rebuild`, so a cached fixed-output hash cannot bypass the check. The
+  fetchers' build tools can still come from public binary caches.
+
+An unavailable custom source, changed content, or dependency hash mismatch
+fails CI. Keep this explicit source list in sync when adding custom packages.
+This does not probe every upstream source behind ordinary Nixpkgs packages, or
+every individual dependency URL behind an already cached build tool.
+
+The weekly scheduled run builds J2 on a fresh runner **without the personal
+cache**. It retains the normal NixOS and Noctalia public caches and repeats all
+the custom source checks. This audits the build without our cached outputs;
+it is not a full rebuild of every OS dependency from source.
 
 Stow runs automatically during Home Manager activation, after Home Manager links
 its files. Back up existing dotfiles and preview conflicts before the first
