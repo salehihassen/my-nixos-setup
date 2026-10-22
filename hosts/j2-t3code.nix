@@ -4,7 +4,7 @@ let
     plugins = [ "github.com/caddy-dns/porkbun@v0.3.1" ];
     # Recheck this source hash after nixpkgs/Go or plugin updates; a cached
     # fixed-output source can hide a stale hash in an ordinary local build.
-    hash = "sha256-Nu2vsmjS5Lz6Wh99cGN1FUNX3hymM/sesRyCeDVfrvM=";
+    hash = "sha256-4qT32DKuNMQmSOUDb+cVf6m/NkPwt54dim+0RyNDApY=";
   };
   prepareAddresses = pkgs.writeShellApplication {
     name = "t3code-caddy-addresses";

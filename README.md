@@ -290,6 +290,13 @@ allowlist alone does not supply that archive.
 
 ### CI binary caches and source validation
 
+NixOS hosts also pull from the public `my-nixos-setup` cache configured in
+`configuration.nix`. After switching to that configuration, local builds can
+download matching outputs published by CI, including custom packages. Pulling
+does not require the Cachix CLI or an authentication token. A local lock update
+that CI has not built yet can still require compilation; the cache reuses exact
+outputs rather than incremental compiler artifacts.
+
 GitHub Actions uses the public Noctalia cache on every run. To also reuse our own
 compiled packages across runs, configure a public Cachix cache:
 

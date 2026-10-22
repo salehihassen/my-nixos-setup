@@ -8,8 +8,14 @@
 {
   # Flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.settings.extra-substituters = [ "https://noctalia.cachix.org" ];
-  nix.settings.extra-trusted-public-keys = [ "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=" ];
+  nix.settings.extra-substituters = [
+    "https://noctalia.cachix.org"
+    "https://my-nixos-setup.cachix.org"
+  ];
+  nix.settings.extra-trusted-public-keys = [
+    "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+    "my-nixos-setup.cachix.org-1:d75GGwTuMnh8vrb2H96ymXtFdy/kMMNUMMtWTLTKrG4="
+  ];
 
   # Drop old generations weekly; GRUB only lists the newest 10 anyway.
   nix.gc = {

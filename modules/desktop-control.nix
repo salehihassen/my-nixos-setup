@@ -98,26 +98,42 @@ let
     '';
   };
 
-  # Restricted tab-cycling helper. Bash would drop the effective group unless
-  # invoked with -p, hence the non-standard shebang.
-  captureKeys = pkgs.writeTextFile {
-    name = "capture-keys";
-    executable = true;
-    destination = "/capture-keys";
-    text = ''
-      #!${pkgs.runtimeShell} -p
-      set -eu
-      export YDOTOOL_SOCKET=/run/ydotoold/socket
-      case "''${1:-}" in
-        tab-next) exec ${pkgs.ydotool}/bin/ydotool key 29:1 15:1 15:0 29:0 ;;
-        tab-prev) exec ${pkgs.ydotool}/bin/ydotool key 29:1 42:1 15:1 15:0 42:0 29:0 ;;
-        *)
-          echo "usage: capture-keys tab-next|tab-prev" >&2
-          exit 2
-          ;;
-      esac
+  # Privileged wrappers require an ELF executable. Keep the allowed chords and
+  # socket fixed, and discard the caller's environment before starting ydotool.
+  captureKeys = pkgs.runCommandCC "capture-keys" {
+    src = pkgs.writeText "capture-keys.c" ''
+      #include <stdio.h>
+      #include <string.h>
+      #include <unistd.h>
+
+      int main(int argc, char **argv) {
+        char *const next[] = {
+          "ydotool", "key", "29:1", "15:1", "15:0", "29:0", NULL
+        };
+        char *const previous[] = {
+          "ydotool", "key", "29:1", "42:1", "15:1", "15:0", "42:0", "29:0", NULL
+        };
+        char *const environment[] = { "YDOTOOL_SOCKET=/run/ydotoold/socket", NULL };
+        char *const *arguments;
+
+        if (argc == 2 && strcmp(argv[1], "tab-next") == 0) {
+          arguments = next;
+        } else if (argc == 2 && strcmp(argv[1], "tab-prev") == 0) {
+          arguments = previous;
+        } else {
+          fputs("usage: capture-keys tab-next|tab-prev\n", stderr);
+          return 2;
+        }
+
+        execve("${pkgs.ydotool}/bin/ydotool", arguments, environment);
+        perror("capture-keys: execve");
+        return 1;
+      }
     '';
-  };
+  } ''
+    mkdir -p "$out/bin"
+    $CC -std=c11 -Wall -Wextra -Werror -O2 "$src" -o "$out/bin/capture-keys"
+  '';
 in
 {
   options.services.desktop-control = {
@@ -162,7 +178,7 @@ in
     '';
 
     security.wrappers.capture-keys = {
-      source = "${captureKeys}/capture-keys";
+      source = "${captureKeys}/bin/capture-keys";
       setgid = true;
       owner = "root";
       group = config.programs.ydotool.group;
