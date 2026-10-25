@@ -1,6 +1,7 @@
 
 
 include optional=true "experimental/protonvpn-toggle.kdl"
+include optional=true "dictation.kdl"
 
 prefer-no-csd // omit client side decorator
 //spawn-sh-at-startup "swaybg -i /home/$USER/.local/share/wallpapers/traffic-blur.jpg" 

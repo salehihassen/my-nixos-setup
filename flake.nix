@@ -131,6 +131,7 @@
       lib.mkStandaloneHome = mkStandaloneHome;
       homeModules.portable = ./home/portable.nix;
       homeModules.desktop = ./home/desktop.nix;
+      homeModules.dictation = ./home/dictation.nix;
       homeModules.snapshot-work = ./home/snapshot-work.nix;
       homeModules.av-editor = ./home/av-editor.nix;
       homeModules.hardware-design = ./home/hardware-design.nix;
@@ -185,6 +186,22 @@
         in
         {
           portable-home = (standalone [ ]).activationPackage;
+          dictation-home =
+            (standalone [
+              ./home/dictation.nix
+              { programs.dictation.enable = true; }
+            ]).activationPackage;
+          dictation-tests =
+            pkgs.runCommand "dictation-tests"
+              {
+                nativeBuildInputs = [ pkgs.python3 ];
+              }
+              ''
+                cp ${./scripts/dictation.py} dictation.py
+                cp ${./scripts/test_dictation.py} test_dictation.py
+                python3 -B test_dictation.py
+                touch "$out"
+              '';
           desktop-home = (standalone [ ./home/desktop.nix ]).activationPackage;
           snapshot-home =
             (standalone [

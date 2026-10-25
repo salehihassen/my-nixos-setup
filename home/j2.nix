@@ -1,7 +1,16 @@
 { pkgs, ... }:
 
 {
-  imports = [ ./t3code.nix ];
+  imports = [
+    ./t3code.nix
+    ./dictation.nix
+  ];
+
+  programs.dictation = {
+    enable = true;
+    package = pkgs.voxtype-vulkan;
+    niriIntegration = true;
+  };
 
   programs.snapshot-work.sourceMode = "checkout";
   home.sessionVariables.YDOTOOL_SOCKET = "/run/ydotoold/socket";

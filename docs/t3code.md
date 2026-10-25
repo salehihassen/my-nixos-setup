@@ -66,6 +66,58 @@ sudo bash /etc/nixos/scripts/activate-t3code.sh
 
 The helper installs the credentials, rebuilds and switches, then removes the staged credentials after success.
 
+## Codex through CLIProxy with telemetry
+
+Use the **Codex · CLIProxy + c3** provider (`codex-cliproxy`) for model
+requests through CLIProxy and telemetry to the existing collector. It is the
+environment default with `codex-plus/gpt-6.1-sol` and high reasoning. Existing
+threads keep their own provider selection; select this provider in their model
+picker to enable forwarding for subsequent turns.
+
+Its Binary path is `/etc/nixos/scripts/t3-codex-proxy`. T3 starts `codex
+app-server` directly and does not invoke the `co()` shell function. Codex
+0.164.0 rejects `--profile` with `app-server`, so this executable reads
+`~/.codex/cliproxy.config.toml` and supplies the equivalent configuration
+overrides. It retains only the Codex proxy credential from the existing private
+`~/.bash_secrets` loader, then invokes `scripts/agent-otel-run` to load scoped
+telemetry credentials. It opts in to the app-server metrics pipeline. Secrets
+stay out of T3's settings and process arguments.
+
+The profile enables OTLP logs, traces and metrics. Do not source its telemetry
+environment into the T3 systemd service or the login shell. The original Codex
+provider remains available for direct authentication. Provider settings are
+stored in `~/.t3/userdata/settings.json`, separately from NixOS generations.
+
+To verify a thread, have its agent report `$CODEX_THREAD_ID` from a shell tool.
+This is the Codex conversation ID; it differs from T3's thread ID. Select User
+`j2` and that session in Langfuse, or query Loki in Grafana:
+
+```logql
+{host_name="j2", service_name="codex-app-server"} | conversation_id="<CODEX_THREAD_ID>"
+```
+
+Check app-server metrics with PromQL:
+
+```promql
+codex_api_request_total{host_name="j2", service_name="codex-app-server"}
+```
+
+The existing machine-local acceptance helper can query all three backends
+without printing credentials:
+
+```sh
+session='<CODEX_THREAD_ID>'
+ssh c3-relay "python3 - '$session'" \
+  < "$HOME/.local/share/agent-otel-setup/verify-c3.py"
+```
+
+Verified after the generation switch on October 24, 2026: the active T3 thread
+exported `codex-app-server` events, metrics, and Langfuse `GENERATION`, `SPAN`
+and `TOOL` observations. Native Codex traces contain call structure and timing;
+generation usage and tool input/output remain incomplete in Langfuse, as in
+the existing CLI setup. Inspect Codex's Loki events for recorded content and
+usage; an empty Langfuse usage field alone does not mean export failed.
+
 ## Claude Code provider
 
 Claude Code is installed per user with npm, independently of the NixOS and
