@@ -23,13 +23,22 @@ in {
     port = 3773;
     dataDirectory = "${config.home.homeDirectory}/.t3";
     workingDirectory = config.home.homeDirectory;
-    providerPackages = [ pkgs.claude-code pkgs.git pkgs.nodejs_24 pkgs.bash pkgs.openssh ];
+    providerPackages = with pkgs; [
+      git
+      nodejs_24
+      bash
+      openssh
+      ripgrep
+      procps
+      bubblewrap
+      socat
+    ];
   };
 
   home.packages = [ cfg.package pairing ];
 
-  # The upstream module supplies PATH itself; include the existing npm Codex
-  # installation before the declarative provider and normal profile paths.
+  # Claude Code and Codex are installed with npm under the user's prefix.
+  # Keep them ahead of the declarative provider tools and normal profile paths.
   systemd.user.services.t3code = {
     Unit.StartLimitIntervalSec = 0;
     Service = {

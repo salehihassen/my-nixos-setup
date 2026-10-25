@@ -165,6 +165,19 @@
 
   # Enable printing service
   services.printing.enable = true;
+  services.printing.drivers = [ pkgs.brlaser ];
+  hardware.printers = {
+    ensurePrinters = [
+      {
+        name = "Brother_HL2240";
+        description = "Brother HL-2240 (USB)";
+        deviceUri = "usb://Brother/HL-2240%20series";
+        model = "drv:///brlaser.drv/br2240.ppd";
+        ppdOptions.PageSize = "Letter";
+      }
+    ];
+    ensureDefaultPrinter = "Brother_HL2240";
+  };
 
   services.udisks2.enable = true;
   services.gvfs.enable = true;
@@ -244,13 +257,15 @@
 
   virtualisation.docker.storageDriver = "btrfs";
 
+  # npm-managed Claude Code uses Anthropic's native binary via nix-ld.
+  programs.nix-ld.libraries = [ pkgs.alsa-lib ];
+
   # Allow unfree drivers as needed
   nixpkgs.config.allowUnfreePredicate = pkg:
     builtins.elem (pkgs.lib.getName pkg) [
       "displaylink" # for docking station
       "evdi"
       "steam-unwrapped"
-      "claude-code"
       "docker-sbx"
       "discord"
       "discord-unwrapped"
@@ -258,8 +273,8 @@
 
   environment.systemPackages = with pkgs; [
     # AI and sandboxing
-    claude-code
     docker-sbx
+    socat # Claude Code's Linux sandbox network relay.
 
     # Networking
     tailscale

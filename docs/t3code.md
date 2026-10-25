@@ -49,8 +49,8 @@ Existing sleep behavior is preserved: remote access stops during suspend or
 while J2 is booted into Windows, and resumes after NixOS wakes/starts.
 
 The persistent base directory is `~/.t3` (including `userdata` and authentication
-state); the working directory is `/home/saleh`. The service uses existing Codex
-from `~/.npm-global/bin` and packaged Claude, plus existing credentials in the
+state); the working directory is `/home/saleh`. The service uses npm-managed
+Claude Code and Codex from `~/.npm-global/bin`, plus existing credentials in the
 user's home. Authenticate expired providers interactively as Saleh.
 
 Caddy reads Porkbun credentials from `/etc/caddy/porkbun.env`, owned by root
@@ -65,6 +65,61 @@ sudo bash /etc/nixos/scripts/activate-t3code.sh
 ```
 
 The helper installs the credentials, rebuilds and switches, then removes the staged credentials after success.
+
+## Claude Code provider
+
+Claude Code is installed per user with npm, independently of the NixOS and
+Home Manager generations. Run installation and updates as Saleh, without sudo:
+
+```sh
+npm install -g @anthropic-ai/claude-code@latest
+command -v claude
+claude --version
+claude doctor
+```
+
+If npm blocks Claude's postinstall script, allow it for this installation only:
+
+```sh
+npm install -g @anthropic-ai/claude-code@latest --allow-scripts=@anthropic-ai/claude-code
+```
+
+Home Manager supplies Node.js and sets npm's prefix to `~/.npm-global`.
+Both the interactive shell and T3's service search that prefix first. Nix
+continues to provide `ripgrep`, `procps`, `bubblewrap`, `socat`, and the
+`nix-ld` library environment, including ALSA for the native Claude binary.
+Use Claude's `/sandbox` command to check its sandbox dependencies.
+
+After updating, new Claude processes use the new executable. Restart T3 after
+active agent work finishes if it retains an older provider process:
+
+```sh
+systemctl --user restart t3code
+```
+
+To downgrade, install a known-good npm version explicitly (replace `VERSION`):
+
+```sh
+npm install -g @anthropic-ai/claude-code@VERSION
+```
+
+Existing Claude updater settings still apply. If you need to stay on a specific
+version, disable Claude's auto-updater with `DISABLE_AUTOUPDATER=1` in each
+launch environment. NixOS rollbacks do not change this npm installation.
+
+The npm installation supports the same proxy configuration as packaged Claude:
+set `ANTHROPIC_BASE_URL` to an Anthropic Messages-compatible gateway, and use
+`ANTHROPIC_AUTH_TOKEN` for bearer authentication or `ANTHROPIC_API_KEY` for
+`x-api-key` authentication, according to the gateway. Keep credentials outside
+this repository and the Nix store. Check the effective configuration with
+Claude's `/status` command.
+
+Shell exports affect Claude launched from that shell; the lingering T3 user
+service does not source shell startup files. For T3, use Claude's private user
+settings or supply the variables to the user service through a private systemd
+`EnvironmentFile` outside this repository. Restart T3 after active work finishes
+to apply changes to its environment. The service's
+`T3CODE_DISABLE_AUTO_UPDATE=1` setting controls T3 itself, not Claude Code.
 
 ## Update or switch channel
 
