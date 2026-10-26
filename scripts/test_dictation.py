@@ -15,6 +15,16 @@ spec = importlib.util.spec_from_file_location("dictation", Path(__file__).with_n
 dictation = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(dictation)
 
+CORRECTION = "Delete files A, B, and C. And let's print out file D, actually let's print out file E."
+HALLUCINATION = (
+    "I'll delete files A, B, and C. Now, let's take a look at file E. "
+    "It appears to be a log of recent transactions, including a successful deployment "
+    "of the new algorithm, which resulted in a 34.72% increase in accuracy. "
+    "The system also experienced a minor glitch during the testing phase, but it was "
+    "resolved quickly without any significant data loss. The current version number "
+    "is 2.1.3, and the code is still being reviewed by the development team."
+)
+
 
 class DictationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -61,7 +71,7 @@ class DictationTests(unittest.IsolatedAsyncioTestCase):
     async def test_faithful_never_starts_ollama_and_cleans_transcript(self):
         await self.session("faithful")
         self.controller.prepare_ollama.assert_not_awaited()
-        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42)
+        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42, result_label="Faithful")
         self.assertFalse(list(self.runtime.glob("session-*")))
         self.assertEqual(self.controller.busy, set())
         self.controller.systemctl.assert_awaited_once_with("restart", "dictation-voxtype-idle.timer")
@@ -69,25 +79,88 @@ class DictationTests(unittest.IsolatedAsyncioTestCase):
     async def test_polish_timeout_falls_back_to_faithful(self):
         self.controller.polish = AsyncMock(side_effect=asyncio.TimeoutError)
         await self.session("polished")
-        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42)
+        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42, result_label="Faithful (polishing failed)")
         self.assertEqual(self.controller.phase, "idle")
         self.assertEqual(self.controller.busy, set())
+
+    async def test_identical_polished_result_still_runs_cleanup(self):
+        with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": "A faithful transcript."}})) as api:
+            await self.session("polished")
+        api.assert_awaited_once()
+        self.controller.deliver.assert_awaited_once_with(
+            "A faithful transcript.", 42, result_label="Polished (unchanged)")
+
+    async def test_changed_polished_result_is_delivered(self):
+        with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": "A faithful transcript."}})):
+            await self.session("polished", "Um, a faithful transcript.")
+        self.controller.deliver.assert_awaited_once_with(
+            "A faithful transcript.", 42, result_label="Polished")
+
+    async def test_invented_paragraph_falls_back_to_original_transcript(self):
+        with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": HALLUCINATION}})):
+            await self.session("polished", CORRECTION)
+        self.controller.deliver.assert_awaited_once_with(
+            CORRECTION, 42, result_label="Faithful (polishing rejected)")
+        self.assertFalse(list(self.runtime.glob("session-*")))
+
+    async def test_short_inventions_and_reordered_words_are_rejected(self):
+        for source, result in (
+            ("Print file E.", "Print confidential file E."),
+            ("Print file E.", "Print file D."),
+            ("Delete file A, keep file B.", "Keep file A, delete file B."),
+            ("Accuracy is 34.72%.", "Accuracy is 99.72%."),
+            ("Set version 2.1.3.", "Set version 2.13."),
+            ("Set the offset to -5.", "Set the offset to 5."),
+            ("Print file_A.txt.", "Print file_B.txt."),
+        ):
+            with self.subTest(result=result):
+                with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": result}})):
+                    with self.assertRaises(ValueError):
+                        await self.controller.polish(source)
+
+    async def test_cleanup_cannot_drop_negations(self):
+        for source, result in (
+            ("Do not delete file A.", "Delete file A."),
+            ("Never delete file A.", "Delete file A."),
+            ("Don't delete file A.", "Delete file A."),
+            ("Do not, uh, delete file A.", "Do not delete file A."),
+        ):
+            with self.subTest(result=result):
+                with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": result}})):
+                    if "not" in result:
+                        self.assertEqual(await self.controller.polish(source), result)
+                    else:
+                        with self.assertRaises(dictation.PolishRejected):
+                            await self.controller.polish(source)
+
+    async def test_truncated_cleanup_is_rejected_even_when_words_match(self):
+        with patch.object(dictation, "api", AsyncMock(return_value={
+            "done_reason": "length", "message": {"content": "Delete files A, B, and C."},
+        })):
+            with self.assertRaises(ValueError):
+                await self.controller.polish(CORRECTION)
+
+    async def test_correction_removes_superseded_file_and_preserves_final_choice(self):
+        result = "Delete files A, B, and C. And let's print file E."
+        with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": result}})):
+            await self.session("polished", CORRECTION)
+        self.controller.deliver.assert_awaited_once_with(result, 42, result_label="Polished")
 
     async def test_malformed_cleanup_response_falls_back(self):
         with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": None}})):
             await self.session("polished")
-        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42)
+        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42, result_label="Faithful (polishing failed)")
 
     async def test_empty_cleanup_response_falls_back(self):
         with patch.object(dictation, "api", AsyncMock(return_value={"message": {"content": " "}})):
             await self.session("polished")
-        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42)
+        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42, result_label="Faithful (polishing failed)")
 
     async def test_unavailable_polish_model_still_dictates(self):
         self.controller.polish = AsyncMock()
         await self.session("polished", preparation_error=OSError("Unavailable"))
         self.controller.polish.assert_not_awaited()
-        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42)
+        self.controller.deliver.assert_awaited_once_with("A faithful transcript.", 42, result_label="Faithful (polishing unavailable)")
 
     async def test_silence_does_not_type(self):
         await self.session("faithful", " \n ")

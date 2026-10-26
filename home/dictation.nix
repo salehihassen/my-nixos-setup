@@ -224,8 +224,8 @@ in
     xdg.configFile."niri/dictation.kdl" = lib.mkIf cfg.niriIntegration {
       text = ''
         binds {
-          Super+Alt+D repeat=false hotkey-overlay-title="Dictation: faithful" { spawn "${controller}/bin/dictation" "toggle" "faithful"; }
-          Super+Alt+Shift+D repeat=false hotkey-overlay-title="Dictation: polished" { spawn "${controller}/bin/dictation" "toggle" "polished"; }
+          Super+Alt+D repeat=false hotkey-overlay-title="Dictation: polished" { spawn "${controller}/bin/dictation" "toggle" "polished"; }
+          Super+Alt+Shift+D repeat=false hotkey-overlay-title="Dictation: faithful" { spawn "${controller}/bin/dictation" "toggle" "faithful"; }
           Super+Alt+Escape repeat=false hotkey-overlay-title="Cancel dictation" { spawn "${controller}/bin/dictation" "cancel"; }
         }
       '';

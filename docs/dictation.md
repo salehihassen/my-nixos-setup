@@ -8,13 +8,37 @@ private under `$XDG_RUNTIME_DIR/dictation` and are removed after each request.
 
 ## Try it
 
-- **Super+Alt+D** starts faithful dictation. Press again to finish.
-- **Super+Alt+Shift+D** starts polished dictation. Press again to finish.
+- **Super+Alt+D** starts polished dictation. Press again to finish.
+- **Super+Alt+Shift+D** starts faithful dictation. Press again to finish.
 - Either shortcut finishes an active recording; its starting mode is retained.
 - **Super+Alt+Escape** cancels recording, initialization, or processing.
 
-Wait for **Listening** before speaking. **Preparing** includes loading the
-models; **Processing** means the microphone is closed and inference is running.
+The mode is selected per recording by the shortcut used to start it; pressing
+the other shortcut to stop does not switch modes. Faithful uses Whisper's
+transcript without an LLM cleanup pass; it is not a guaranteed word-for-word
+record of every hesitation. Polished additionally asks the local LLM to remove
+fillers, repetitions and explicitly corrected false starts, and adjust punctuation
+and casing. Cleanup is deliberately conservative: a separate code check requires
+the output words to appear in the original transcript in the same order, preserves
+negations, and treats numbers and dotted identifiers as whole tokens. It rejects
+invented words, replacements, reordered words and truncated responses. Broad
+grammar rewrites that need new words also fall back to the original transcript.
+This check limits model inventions; it cannot prove that every deletion preserves
+meaning or correct mistakes already present in Whisper's transcript.
+An explicit correction can replace a clause in an earlier sentence: cleanup
+keeps the final choice and retains unrelated requests before it. It must not
+complete an unfinished list by guessing missing items.
+Both receive the same Whisper transcript, so their outputs can match.
+If Whisper has already omitted a filler, the polishing stage never sees it.
+
+Before capture, **Preparing · Faithful** or **Preparing · Polished** identifies
+the chosen mode and its processing. Wait for **Listening · [mode]** before
+speaking. **Preparing** includes loading the models; **Transcribing** and
+**Polishing** mean the microphone is closed and inference is running.
+Completion identifies the output mode, including **Polished (unchanged)** when
+cleanup returns identical text and **Faithful (polishing unavailable/failed/rejected)**
+when polished mode falls back. The Listening notification also identifies a
+fallback that occurs during preparation.
 Noctalia's existing privacy widget shows actual microphone capture. Recording
 automatically ends after five minutes.
 
@@ -22,7 +46,9 @@ Text is inserted once through `wtype`, with line breaks replaced by spaces and
 without submitting. If the original niri window is no longer focused, focus
 cannot be verified, or typing fails, the result goes to the clipboard and a
 notification appears. Switching fields within the same window is not detected.
-Polishing failures, empty replies, and timeouts fall back to the faithful text.
+Polishing failures, rejected cleanup, empty replies, and timeouts fall back to
+the faithful text. **Polishing rejected** means the independent output check
+blocked a rewrite; the completion title confirms the faithful fallback.
 The default polishing timeout is 45 seconds.
 
 The CLI is also available at `~/.local/bin/dictation`:
@@ -97,6 +123,21 @@ python3 -B /etc/nixos/scripts/test_dictation.py
 nix build 'path:/etc/nixos#checks.x86_64-linux.dictation-tests'
 ```
 
+For optional semantic checks against the actual local model, run these while
+dictation is idle. They use synthetic text and do not record or type anything:
+
+```sh
+systemctl --user start ollama.service
+python3 -B /etc/nixos/scripts/test_dictation_polish.py
+~/.local/bin/dictation idle ollama
+```
+
+These six live checks cover corrections across sentences, preservation of
+unrelated requests and negations, unfinished lists, and separate requests that
+should both remain. They run separately from the offline Nix check because they
+need the downloaded model and running Ollama. The test command accepts `--url`,
+`--model`, and `--timeout` for configurations with different polishing settings.
+
 On NixOS, the `default` ALSA input routes through the configured PipeWire ALSA
 support. A custom microphone must use an ALSA name, not a `pactl` source name.
 The controller suppresses Voxtype transcript logging and transcript notifications.
@@ -118,13 +159,22 @@ typing, and application tests are left for the user's first test session.
   does not account for all Vulkan GPU allocations.
 - The cleanup model loaded on CPU in **5.92 seconds** and polished a synthetic
   sentence in **2.41 seconds**, preserving NixOS and removing filler words.
+- After reproducing instruction-following in the old cleanup path, eight
+  synthetic text probes exercised the constrained prompt and output check.
+  The file D → file E correction kept the final choice, fillers were removed,
+  and a dictated instruction to write a story remained dictated text.
+  A question rewritten with different words fell back to the original transcript.
+  No microphone capture or desktop typing was used for these probes.
 - Actual idle timers released Whisper after **61.24 seconds** and stopped the
   cleanup server after **62.21 seconds**, including timer accuracy/startup and
   shutdown overhead. All three services were inactive afterward, with no failed
   user units. The systemd control socket survived controller exit/restart.
 - J2's home generation builds, niri configuration validates, standalone CPU
   configuration evaluates, and B1 remains unaffected.
-- **18 regression tests passed**, including in a Nix build. They cover mode selection, cleanup failure/timeout, silence,
+- **25 regression tests passed**, including in a Nix build. They cover mode selection,
+  unchanged/changed cleanup output, invented paragraphs, changed filenames/numbers,
+  reordered words, negation removal, truncated cleanup, correction of a superseded
+  file choice, cleanup failure/timeout, silence,
   cancellation, focus fallback, timer races, and real inotify state events.
 
 Upstream interface reference: the pinned Voxtype source's
