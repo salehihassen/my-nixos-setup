@@ -1,6 +1,6 @@
 # T3 Code on J2
 
-J2 runs the alpha source server (`channel = "stable"`) from the independently pinned
+J2 runs the prebuilt server (`channel = "stable"`) from the independently pinned
 `t3-code-nix` flake. Configure the channel, source/prebuilt variant, or package
 override in `home/t3code.nix`. The desktop client is not installed.
 
@@ -74,6 +74,12 @@ environment default with `codex-plus/gpt-6.1-sol` and high reasoning. Existing
 threads keep their own provider selection; select this provider in their model
 picker to enable forwarding for subsequent turns.
 
+Claude Pro subscription model IDs (`claude-pro/...`) are excluded from the
+Codex and Pi source catalogs on j2. T3 also hides those entries for those
+providers so an existing provider process cannot list stale cached models.
+Keep subscription-backed Claude models available only through the Claude Code
+provider below when updating these catalogs.
+
 Its Binary path is `/etc/nixos/scripts/t3-codex-proxy`. T3 starts `codex
 app-server` directly and does not invoke the `co()` shell function. Codex
 0.164.0 rejects `--profile` with `app-server`, so this executable reads
@@ -119,6 +125,49 @@ the existing CLI setup. Inspect Codex's Loki events for recorded content and
 usage; an empty Langfuse usage field alone does not mean export failed.
 
 ## Claude Code provider
+
+Select **Claude · CLIProxy + c3** (`claudeAgent`) and a `claude-pro/...`
+model, such as `claude-pro/claude-opus-5-5`. The provider's Binary path is
+`/etc/nixos/scripts/t3-claude-proxy`. Its custom models retain the exact Claude
+IDs imported from the CLIProxy catalog; the bare built-in models are hidden.
+Model options are retained where Claude's catalog supplies them. These settings
+live in `~/.t3/userdata/settings.json`, independently of NixOS generations.
+
+T3 bypasses the interactive `claude()` shell function and supplies an explicit
+model ID. On October 27, 2026, the unwrapped launch reproduced
+`400 unknown provider for model claude-opus-5-5`: the request reached CLIProxyAPI,
+which needs the `claude-pro/` routing namespace. Supplying the qualified ID
+resolved the error. The same unwrapped process also lacked OTel configuration.
+
+The launcher reads only Claude's proxy variables from `~/.bash_secrets`, then
+calls the existing `scripts/agent-otel-run claude` launcher. This loads the same
+private telemetry credentials and `~/.config/agent-otel/claude-settings.json`
+overlay as the working interactive CLI. Existing Claude settings and account
+files stay in their normal locations. No telemetry environment is added to the
+T3 service or login shell. Bare startup `--model` and `--fallback-model` values
+are qualified using the existing Opus route; already qualified models and
+aliases remain intact. Dated default models retain their configured IDs.
+Use the qualified picker entries for subsequent model switches too.
+
+Verified with T3's Agent SDK version 0.3.276, starting with proxy and telemetry
+variables removed from the parent environment: Opus completed an inference and
+Bash tool call through CLIProxyAPI. On c3, session
+`be3654a3-a013-486a-a5f3-580526392b2d` produced 12 `claude-code` Loki events and
+7 Langfuse observations (`AGENT`, `GENERATION`, `SPAN`, `TOOL`), with usage,
+captured tool output, and zero errors. Claude metrics were also present in
+Prometheus. Repeat a downstream check with the existing `verify-c3.py` helper
+above, using the native Claude session ID. The SDK smoke test is distinct from
+running a turn through T3's UI.
+
+Run the isolated launcher regression check with:
+
+```sh
+python3 /etc/nixos/scripts/test_t3_claude_proxy.py
+```
+
+Provider settings reload live. The idle Claude process left by the failed run
+was stopped so it cannot retain the previous launch environment. New Claude
+processes use the launcher. No service restart or NixOS rebuild is needed.
 
 Claude Code is installed per user with npm, independently of the NixOS and
 Home Manager generations. Run installation and updates as Saleh, without sudo:
@@ -167,16 +216,17 @@ this repository and the Nix store. Check the effective configuration with
 Claude's `/status` command.
 
 Shell exports affect Claude launched from that shell; the lingering T3 user
-service does not source shell startup files. For T3, use Claude's private user
-settings or supply the variables to the user service through a private systemd
-`EnvironmentFile` outside this repository. Restart T3 after active work finishes
-to apply changes to its environment. The service's
+service does not source shell startup files. The launcher above loads the
+existing proxy setup for T3 explicitly. The service's
 `T3CODE_DISABLE_AUTO_UPDATE=1` setting controls T3 itself, not Claude Code.
 
 ## Update or switch channel
 
 Automatic application updates are disabled. The packaging flake tracks upstream
 releases; updating its input leaves the system's nixpkgs pin unchanged.
+For future updates, keep `packageVariant = "prebuilt"` and use this Nix workflow
+instead of the update prompt's `npx t3@...` command. T3 can keep running during
+the build.
 
 ```sh
 cd /etc/nixos
@@ -185,24 +235,52 @@ nixos-rebuild build --flake /etc/nixos#j2 --cores 4 --max-jobs 1
 ```
 
 To switch channels or build variants, edit `channel`/`packageVariant` in
-`home/t3code.nix` before building. Source builds also build a shared desktop
-bundle and can take several minutes. Match remote client versions where
-required by T3 Code.
+`home/t3code.nix` before building. J2 uses the stable prebuilt server to avoid
+compiling T3 Code locally. Source builds also build a shared desktop bundle and
+can take several minutes. Match remote client versions where required by T3
+Code. The build command does not activate the new configuration; the switch
+below does.
 
 After a successful build, wait for active agent work to finish, then back up
-state with the service stopped before switching:
+state with the service stopped before switching. Run this from a terminal
+outside T3, since stopping the service disconnects its sessions:
+
+First, run this command by itself and complete any password prompt:
 
 ```sh
-systemctl --user stop t3code
-backup_dir="$HOME/.local/state/t3code-backups"
-mkdir -p "$backup_dir"
-chmod 700 "$backup_dir"
-if ! (umask 077; tar -C "$HOME" -czf "$backup_dir/$(date +%Y%m%dT%H%M%S).tar.gz" .t3); then
-  systemctl --user start t3code
-  exit 1
-fi
-sudo nixos-rebuild switch --flake /etc/nixos#j2 --cores 4 --max-jobs 1
-systemctl --user start t3code
+sudo -v
+```
+
+Then run the block below immediately in the same terminal. It uses `sudo -n`
+to fail with an error instead of requesting a password inside the block. The
+first check happens before T3 is stopped.
+
+```sh
+(
+  set -e
+  sudo -n true
+  systemctl --user stop t3code
+  trap 'systemctl --user start t3code' EXIT
+
+  backup_dir="$HOME/.local/state/t3code-backups"
+  install -d -m 700 "$backup_dir"
+  (
+    umask 077
+    tar -C "$HOME" -czf "$backup_dir/$(date +%Y%m%dT%H%M%S).tar.gz" .t3
+  )
+
+  sudo -n nixos-rebuild switch --flake /etc/nixos#j2 --cores 4 --max-jobs 1
+)
+```
+
+The exit trap starts T3 again even if the backup or switch fails. If `sudo -n`
+reports that a password is required, run `sudo -v` separately again and rerun
+the block. After the switch, verify the version and service status, then
+reconnect your clients:
+
+```sh
+t3 --version
+systemctl --user status t3code
 ```
 
 Restarting interrupts agent turns, terminals and connected clients. A NixOS

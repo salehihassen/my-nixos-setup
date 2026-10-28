@@ -1,0 +1,66 @@
+#!/usr/bin/env -S uv run --python 3.13 --no-project python
+"""Run T3's Claude CLI with the daily-driver proxy and scoped OTel setup."""
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+
+def main():
+    # A lingering user service does not read shell startup files. Retain only
+    # Claude's proxy settings from the existing private loader.
+    result = subprocess.run(
+        ["bash", "--noprofile", "--norc", "-c",
+         'set -e; . "$HOME/.bash_secrets" >/dev/null; env -0'],
+        capture_output=True, check=False,
+    )
+    if result.returncode:
+        raise ValueError("Could not load Claude proxy settings from ~/.bash_secrets")
+    for entry in result.stdout.split(b"\0"):
+        if b"=" not in entry:
+            continue
+        key, value = entry.decode().split("=", 1)
+        if key.startswith("ANTHROPIC_") or key == "CLAUDE_CODE_SUBAGENT_MODEL":
+            os.environ[key] = value
+    if not os.environ.get("ANTHROPIC_BASE_URL") or not (
+        os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")
+    ):
+        raise ValueError("Claude proxy endpoint or credential is missing")
+
+    # T3's built-in catalog passes explicit bare IDs, bypassing the opus/sonnet
+    # aliases. Use the same routing namespace as the existing Opus alias.
+    default = os.environ.get("ANTHROPIC_DEFAULT_OPUS_MODEL", "")
+    if "/" not in default:
+        raise ValueError("ANTHROPIC_DEFAULT_OPUS_MODEL must include its proxy namespace")
+    namespace = default.rsplit("/", 1)[0] + "/"
+    aliases = {
+        re.sub(r"-\d{8}$", "", value.rsplit("/", 1)[-1]): value
+        for key, value in os.environ.items()
+        if key.startswith("ANTHROPIC_DEFAULT_") and key.endswith("_MODEL") and "/" in value
+    }
+
+    def routed(model):
+        if model.startswith("claude-") and "/" not in model:
+            return aliases.get(model, namespace + model)
+        return model
+
+    args = sys.argv[1:]
+    model_flags = ("--model", "--fallback-model")
+    for index, arg in enumerate(args):
+        if arg in model_flags and index + 1 < len(args):
+            args[index + 1] = routed(args[index + 1])
+        else:
+            for flag in model_flags:
+                if arg.startswith(flag + "="):
+                    args[index] = flag + "=" + routed(arg[len(flag) + 1:])
+    launcher = str(Path(__file__).resolve().with_name("agent-otel-run"))
+    os.execv(launcher, [launcher, "claude", *args])
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(f"t3-claude-proxy: {error}", file=sys.stderr)
+        sys.exit(1)

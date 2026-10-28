@@ -197,11 +197,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1789684949,
-        "narHash": "sha256-ZKhUe/2IJUq1JhKxKMu8rbkgSGmPP2ZCqlIPn40aGCM=",
+        "lastModified": 1792773339,
+        "narHash": "sha256-rZLrzrC6i+jnTAlvPZHogKDulY7WWDEv9hJeHieO7Zw=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "e554fab72f81915600f3f449b786fd9af40439a5",
+        "rev": "3ec636362e1816bc2f0888fa0fa2c69f1bc9e504",
         "type": "github"
       },
       "original": {
@@ -305,11 +305,11 @@
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1792610670,
-        "narHash": "sha256-6kZGOAMbQTxHut+uiVPqvD/FB5NGxR6qYCNHsja8JKk=",
+        "lastModified": 1793099504,
+        "narHash": "sha256-ustJvoQYTnwci+ftjEjBG6/OS+rfyjGspEqKxcBCC6k=",
         "owner": "LisaScheers",
         "repo": "t3-code-nix",
-        "rev": "c78b1a2efb4570e1d07c41e75a4b0cb8c110997d",
+        "rev": "dc85ae099977d6b2fdb554bedafa8512c8677040",
         "type": "github"
       },
       "original": {

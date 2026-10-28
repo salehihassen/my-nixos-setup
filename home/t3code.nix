@@ -18,7 +18,7 @@ in {
     enable = true;
     # Change these two values to select stable/nightly and source/prebuilt.
     channel = "stable";
-    packageVariant = "source";
+    packageVariant = "prebuilt";
     host = "127.0.0.1";
     port = 3773;
     dataDirectory = "${config.home.homeDirectory}/.t3";

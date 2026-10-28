@@ -6,6 +6,7 @@ let
   config = host.config;
   home = config.home-manager.users.saleh;
   t3code = home.services.t3code.package;
+  t3codeFromSource = t3code ? sourceUnwrapped;
   lock = builtins.fromJSON (builtins.readFile ../../flake.lock);
 
   download = label: src: {
@@ -53,7 +54,7 @@ in
     ]
     ++ [
       (download "niri" config.programs.niri.package.src)
-      (download "t3code" t3code.sourceUnwrapped.src)
+      (download "t3code" (if t3codeFromSource then t3code.sourceUnwrapped.src else t3code.src))
       (download "zen-browser-release" home.programs.zen-browser.package.unwrapped.src)
       {
         label = "displaylink-archive";
@@ -68,6 +69,7 @@ in
     (bundle "caddy-plugins" config.services.caddy.package.src)
     (bundle "compose2nix-go-modules" flake.inputs.compose2nix.packages.x86_64-linux.default.goModules)
     (bundle "niri-cargo-vendor" config.programs.niri.package.cargoDeps.vendorStaging)
+  ] ++ host.pkgs.lib.optionals t3codeFromSource [
     (bundle "t3code-pnpm-deps" t3code.sourceUnwrapped.pnpmDeps)
     (bundle "t3code-monitor-cargo-vendor" t3code.resourceMonitor.cargoDeps.vendorStaging)
   ];
