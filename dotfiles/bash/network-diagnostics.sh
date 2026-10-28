@@ -407,7 +407,6 @@ printf 'One failed endpoint can be down. Multiple UDP failures while HTTPS works
 
 section "Public HTTPS sites"
 http_probe "Cloudflare" "https://www.cloudflare.com/"
-http_probe "Codeberg" "https://codeberg.org/"
 http_probe "GitHub" "https://github.com/"
 http_probe "Wikipedia" "https://www.wikipedia.org/"
 
@@ -417,9 +416,6 @@ http_probe "Proton account service" "https://account.protonvpn.com/"
 http_probe "Proton VPN API" "https://api.protonvpn.ch/"
 
 section "SSH transport and authentication"
-if tcp_probe "Codeberg SSH" "codeberg.org" 22; then
-  ssh_probe "Codeberg" "git@codeberg.org" "forge"
-fi
 if tcp_probe "GitHub SSH" "github.com" 22; then
   ssh_probe "GitHub" "git@github.com" "forge"
 fi
