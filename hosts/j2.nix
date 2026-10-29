@@ -12,19 +12,6 @@
   # TODO once merged, remove the below
   nixpkgs.overlays = [
     (final: _prev: {
-      # EVDI installs its module without the certificate now required by the
-      # kernel module aggregator. Sign after stripping so the digest stays valid.
-      kernelPackagesExtensions = _prev.kernelPackagesExtensions ++ [
-        (_kernelFinal: kernelPrev: {
-          evdi = kernelPrev.evdi.overrideAttrs (old: {
-            postFixup = (old.postFixup or "") + ''
-              ${final.buildPackages.kmodigest}/bin/kmodigest \
-                "$out/lib/modules/${kernelPrev.kernel.modDirVersion}/kernel/drivers/gpu/drm/evdi/evdi.ko"
-            '';
-          });
-        })
-      ];
-
       displaylink = final.callPackage
         (inputs.displaylinkSrc.outPath + "/pkgs/os-specific/linux/displaylink/default.nix")
         { inherit (final.linuxPackages) evdi; };
