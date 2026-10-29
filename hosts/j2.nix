@@ -11,17 +11,6 @@
   # Overlays for PRs in flight ===========================================
   # TODO once merged, remove the below
   nixpkgs.overlays = [
-    (_final: prev: {
-      # Backport https://github.com/niri-wm/niri/issues/4216 to 26.04.
-      # Remove when the packaged release includes upstream commit 0add05d.
-      # Shared by NixOS and Home Manager so both use the patched compositor.
-      niri = prev.niri.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ../patches/niri-popup-redraw.patch ];
-        env = (old.env or { }) // {
-          NIRI_BUILD_COMMIT = "Nixpkgs+popup-redraw-0add05d";
-        };
-      });
-    })
     (final: _prev: {
       # EVDI installs its module without the certificate now required by the
       # kernel module aggregator. Sign after stripping so the digest stays valid.
