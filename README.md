@@ -66,8 +66,9 @@ pinned paths for Sensible, Resurrect, and Continuum.
 
 J2 opts into `home/helium.nix`. It adds the package from the community
 [schembriaiden Helium flake](https://github.com/schembriaiden/helium-browser-nix-flake)
-to `home.packages`. The shared desktop and portable profiles do not
-install Helium; other machines can opt in by importing this module.
+to `home.packages` and makes it the default for web links and HTML documents.
+The shared desktop and portable profiles do not install Helium; other machines
+can opt in by importing this module.
 
 Investigated on October 30, 2026: this checkout's pinned Nixpkgs does not package
 the Helium browser, and its Home Manager does not have a Helium module. The
@@ -96,15 +97,22 @@ Apply through the existing NixOS-integrated Home Manager:
 sudo nixos-rebuild switch --flake /etc/nixos#j2
 ```
 
-Then launch `helium` or choose Helium from the application launcher. Existing
-browser defaults and profiles remain as configured. The trial adds no policies,
-profile migration, background updater, or sandbox-disabling flags. Browser
-preferences remain machine-local application state.
+Then launch `helium`, choose Helium from the application launcher, or press
+`Mod+Apostrophe`. `Mod+Shift+Apostrophe` launches Chromium. Niri's editable
+shortcut configuration reloads independently of a rebuild.
+
+The module overrides the existing web/HTML defaults with `helium.desktop`.
+Custom URL handlers such as `claude-cli`, `webcal`, and `web+nextcloudreddit`
+keep their existing applications. The local Playwright MCP configuration
+explicitly selects Chromium and its separate AI browser profile; this change
+does not modify it. Desktop-control has no configured browser selection.
+The trial adds no policies, profile migration, background updater, or
+sandbox-disabling flags. Browser preferences remain machine-local state.
 
 Initial validation passed for the package build, J2 Home Manager generation
 build, `nix flake check --no-build`, and headless page rendering with a temporary
-profile and no sandbox-disabling flags. Omitting the module was also evaluated:
-Helium disappears from `home.packages` and MIME associations remain identical.
+profile and no sandbox-disabling flags. Omitting the module removes Helium
+from `home.packages` and restores the desktop/J2 browser defaults.
 Interactive Wayland/GPU behavior still needs a manual trial after activation.
 
 Update Helium independently, review the lock diff and package version, then
@@ -120,8 +128,10 @@ Updates depend on the community flake tracking Helium releases; rebuilding
 alone does not change the pinned browser version.
 
 To stop the trial, remove `./home/helium.nix` from J2's `homeModules` list in
-`flake.nix` and rebuild/switch. This removes the installed package and launcher;
-the browser profile is retained. For full configuration cleanup, also remove
+`flake.nix` and rebuild/switch. This removes the installed package and launcher,
+and restores the previous browser defaults; the browser profile is retained.
+Also change `Mod+Apostrophe` in `dotfiles/niri/.config/niri/config.kdl` to another
+installed browser. For full configuration cleanup, also remove
 the `helium-browser` input, the `homeModules.helium` export, and `home/helium.nix`,
 then run `nix flake lock` to prune its lock entry. Do not delete browser data
 unless you deliberately want to discard it.
