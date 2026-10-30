@@ -198,9 +198,9 @@ public-upload-file() {
 }
 
 
-alias career-ops-codex="/home/saleh/apps/career-ops/scripts/start-codex-career-ops"
-alias career-ops-opencode="cd /home/saleh/apps/career-ops && opencode"
-alias career-ops="career-ops-codex"
+# Add boat.dev cli to path
+export PATH="/home/saleh/.ascii/bin:$PATH"
+
 
 # Misc notes ==============================
 # wireplumber failing around ALSA device handling causing CPU to overheat?
