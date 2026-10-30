@@ -6,6 +6,7 @@
     ../home/protonvpn-toggle.nix
     ./j2-t3code.nix
     ../modules/desktop-control.nix
+    ../modules/boat-dev
   ];
 
   # Overlays for PRs in flight ===========================================
