@@ -31,11 +31,12 @@ flake.nix
 │   └── Home Manager modules
 │       ├── home/portable.nix      shared CLI development environment
 │       ├── home/desktop.nix       Niri, desktop applications, and user services
+│       ├── home/helium.nix        optional Helium browser trial
 │       ├── home/snapshot-work.nix optional window/workspace/browser captures
 │       ├── home/av-editor.nix     optional media applications
 │       ├── home/hardware-design.nix  optional hardware design applications
 │       └── home/<host>.nix        per-host user applications
-├── homeModules.{portable,desktop,snapshot-work,av-editor,hardware-design}
+├── homeModules.{portable,desktop,helium,snapshot-work,av-editor,hardware-design}
 ├── lib.mkStandaloneHome           portable Home Manager on non-NixOS Linux
 ├── checks.x86_64-linux.*              standalone builds and snapshot checks
 └── packages.x86_64-linux.recoveryIso
@@ -43,7 +44,7 @@ flake.nix
 
 `mkHostFor` integrates Home Manager into every NixOS host. Its default profile
 contains only `home/portable.nix`; desktop hosts must opt into the desktop module
-explicitly. `j2` composes portable, desktop, snapshot-work, AV editor, hardware design, and
+explicitly. `j2` composes portable, desktop, Helium, snapshot-work, AV editor, hardware design, and
 `home/j2.nix`, while `b1` currently receives only portable. Home Manager uses
 the host's Nixpkgs package set, so host-level package policy such as `j2`'s
 unfree allowlist also applies to
@@ -60,6 +61,70 @@ The ownership boundary is:
 For example, Stow owns the editable Ghostty and tmux configurations while Home
 Manager installs Ghostty and generates `.config/tmux/nix-plugins.conf` with
 pinned paths for Sensible, Resurrect, and Continuum.
+
+## Helium trial
+
+J2 opts into `home/helium.nix`. It adds the package from the community
+[schembriaiden Helium flake](https://github.com/schembriaiden/helium-browser-nix-flake)
+to `home.packages`. The shared desktop and portable profiles do not
+install Helium; other machines can opt in by importing this module.
+
+Investigated on October 30, 2026: this checkout's pinned Nixpkgs does not package
+the Helium browser, and its Home Manager does not have a Helium module. The
+chosen flake repackages the official Linux binary tarball, patches its binaries
+for Nix, and supplies a launcher, desktop entry, icons, and Wayland integration. It uses
+our existing Nixpkgs through `follows`, with no overlay or additional binary
+cache. `flake.lock` pins the packaging revision and the derivation pins the
+download hash. The initial package version is **0.20.2.1**.
+
+This is community-maintained packaging, rather than an official Helium Nix
+package. Alternatives reviewed were
+[oxcl's binary flake and Home Manager module](https://github.com/oxcl/nix-flake-helium-browser),
+whose tested revision passed a shell expression literally through its binary
+wrapper and failed a headless launch check, and
+[penal-colony's source build](https://github.com/penal-colony/helium-nix),
+which can require a substantial Chromium build or a separate trusted cache.
+The chosen flake supplies a package directly, so this trial needs no additional
+program options or custom launcher. Its Darwin Nixpkgs and flake-utils inputs
+are transitive dependencies; the Linux package uses our existing Nixpkgs.
+See the [official Linux packaging guidance](https://github.com/imputnet/helium-linux#downloads)
+and [upstream NixOS packaging issue](https://github.com/imputnet/helium/issues/320).
+
+Apply through the existing NixOS-integrated Home Manager:
+
+```bash
+sudo nixos-rebuild switch --flake /etc/nixos#j2
+```
+
+Then launch `helium` or choose Helium from the application launcher. Existing
+browser defaults and profiles remain as configured. The trial adds no policies,
+profile migration, background updater, or sandbox-disabling flags. Browser
+preferences remain machine-local application state.
+
+Initial validation passed for the package build, J2 Home Manager generation
+build, `nix flake check --no-build`, and headless page rendering with a temporary
+profile and no sandbox-disabling flags. Omitting the module was also evaluated:
+Helium disappears from `home.packages` and MIME associations remain identical.
+Interactive Wayland/GPU behavior still needs a manual trial after activation.
+
+Update Helium independently, review the lock diff and package version, then
+rebuild:
+
+```bash
+nix flake update helium-browser
+nixos-rebuild build --flake /etc/nixos#j2
+sudo nixos-rebuild switch --flake /etc/nixos#j2
+```
+
+Updates depend on the community flake tracking Helium releases; rebuilding
+alone does not change the pinned browser version.
+
+To stop the trial, remove `./home/helium.nix` from J2's `homeModules` list in
+`flake.nix` and rebuild/switch. This removes the installed package and launcher;
+the browser profile is retained. For full configuration cleanup, also remove
+the `helium-browser` input, the `homeModules.helium` export, and `home/helium.nix`,
+then run `nix flake lock` to prune its lock entry. Do not delete browser data
+unless you deliberately want to discard it.
 
 ## Editable checkout scripts and optional snapshots
 

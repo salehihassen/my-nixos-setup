@@ -30,6 +30,11 @@
       };
     };
 
+    helium-browser = {
+      url = "github:schembriaiden/helium-browser-nix-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     displaylinkSrc = {
       url = "github:salehihassen/nixpkgs/edd273db0c3211fabdc6b646ff3abd73c90ef7b3";
       flake = false;
@@ -131,6 +136,7 @@
       lib.mkStandaloneHome = mkStandaloneHome;
       homeModules.portable = ./home/portable.nix;
       homeModules.desktop = ./home/desktop.nix;
+      homeModules.helium = ./home/helium.nix;
       homeModules.dictation = ./home/dictation.nix;
       homeModules.snapshot-work = ./home/snapshot-work.nix;
       homeModules.av-editor = ./home/av-editor.nix;
@@ -145,6 +151,7 @@
           homeModules = [
             ./home/portable.nix
             ./home/desktop.nix
+            ./home/helium.nix
             ./home/snapshot-work.nix
             ./home/av-editor.nix
             ./home/hardware-design.nix
