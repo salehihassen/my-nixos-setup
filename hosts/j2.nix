@@ -83,6 +83,8 @@
     '';
   };
   */
+  programs.wireshark.enable = true;
+
 
   hardware.bluetooth.enable = true;
 
