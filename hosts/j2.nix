@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, inputs, username, ... }:
 # Unique setup for j2 laptop
 {
   imports = [
@@ -233,6 +233,26 @@
   };
 
   virtualisation.docker.storageDriver = "btrfs";
+
+  # Local KVM guests, managed through virt-manager's QEMU/KVM system connection.
+  virtualisation.libvirtd.enable = true;
+  programs.virt-manager.enable = true;
+  users.users.${username}.extraGroups = [ "libvirtd" ];
+
+  # Persistently autostart the default network supplied by libvirtd-config.
+  systemd.tmpfiles.rules = [
+    "d /var/lib/libvirt/qemu/networks/autostart 0755 root root -"
+    "L /var/lib/libvirt/qemu/networks/autostart/default.xml - - - - ../default.xml"
+  ];
+
+  # Only allow guest DNS and DHCP to the host on libvirt's default NAT bridge.
+  networking.firewall.interfaces.virbr0 = {
+    allowedTCPPorts = [ 53 ];
+    allowedUDPPorts = [ 53 67 ];
+  };
+
+  # Docker must not block forwarding for libvirt's independently managed NAT.
+  virtualisation.docker.daemon.settings.ip-forward-no-drop = true;
 
   # npm-managed Claude Code uses Anthropic's native binary via nix-ld.
   programs.nix-ld.libraries = [ pkgs.alsa-lib ];

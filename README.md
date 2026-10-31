@@ -62,6 +62,58 @@ For example, Stow owns the editable Ghostty and tmux configurations while Home
 Manager installs Ghostty and generates `.config/tmux/nix-plugins.conf` with
 pinned paths for Sensible, Resurrect, and Continuum.
 
+## Ubuntu VMs on J2
+
+J2 enables KVM/libvirt and Virtual Machine Manager (`virt-manager`), and grants
+the configured user membership in `libvirtd`. The default NAT network
+autostarts through a systemd-tmpfiles symlink. Its bridge (`virbr0`) permits
+only DNS and DHCP to the host through J2's firewall. Docker is configured with
+`ip-forward-no-drop` so it does not block other virtual networks' forwarding;
+libvirt manages the guest network's NAT and forwarding rules.
+
+Apply the configuration:
+
+```bash
+sudo nixos-rebuild switch --flake /etc/nixos#j2
+```
+
+Reboot once after the initial switch to pick up the new login group and start
+Docker and libvirt with fresh firewall rules. Switching restarts Docker, so
+finish any running container work first. Then check:
+
+```bash
+virsh --connect qemu:///system list --all
+virsh --connect qemu:///system net-list --all
+```
+
+The `default` network should show `active` and `Autostart: yes`. If it is
+inactive, start it with `virsh --connect qemu:///system net-start default`.
+
+To install Ubuntu:
+
+1. Download an **Ubuntu Desktop LTS amd64 ISO** from the
+   [official Ubuntu downloads](https://ubuntu.com/download/desktop), or use
+   [Ubuntu 24.04 LTS](https://releases.ubuntu.com/24.04/) if that version is
+   required. Verify the download against the release's `SHA256SUMS`.
+2. Launch `virt-manager` and select the **QEMU/KVM system** connection.
+3. Choose **Create a new virtual machine → Local install media (ISO)**.
+   Select the ISO, then start with **8192 MiB RAM, 4 virtual CPUs, and a
+   60 GiB virtual disk**. Use the default storage pool and the **default NAT**
+   network. These are suggested allocations for J2's 32 GB RAM and 16 threads.
+4. Complete the Ubuntu installer inside the VM. Its erase-disk option applies
+   to the new virtual disk. After installation, eject the virtual ISO if it
+   boots back into the installer.
+
+VM definitions and disks are persistent local state under `/var/lib/libvirt`
+(the default storage pool uses `/var/lib/libvirt/images`). Shut down the guest
+normally and start it again from virt-manager whenever needed. Guest autostart
+at host boot is optional in the VM's **Boot Options**. Back up guest disks
+separately; this Git repository records the host setup, not installed VMs.
+
+References: the pinned Nixpkgs `libvirtd` and `virt-manager` modules,
+[libvirt networking](https://libvirt.org/formatnetwork.html), and
+[Docker forwarding policy](https://docs.docker.com/engine/network/packet-filtering-firewalls/).
+
 ## Helium trial
 
 J2 opts into `home/helium.nix`. It adds the package from the community
