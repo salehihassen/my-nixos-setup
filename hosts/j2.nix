@@ -83,8 +83,10 @@
     '';
   };
   */
-  programs.wireshark.enable = true;
-
+  programs.wireshark = {
+    enable = true;
+    package = pkgs.wireshark;
+  };
 
   hardware.bluetooth.enable = true;
 
@@ -239,7 +241,7 @@
   # Local KVM guests, managed through virt-manager's QEMU/KVM system connection.
   virtualisation.libvirtd.enable = true;
   programs.virt-manager.enable = true;
-  users.users.${username}.extraGroups = [ "libvirtd" ];
+  users.users.${username}.extraGroups = [ "libvirtd" "wireshark" ];
 
   # Persistently autostart the default network supplied by libvirtd-config.
   systemd.tmpfiles.rules = [
