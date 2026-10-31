@@ -82,6 +82,11 @@
       uv
       nodejs_24
       pnpm
+      # Expose Playwright's agent CLI with a Nix-managed browser for every harness.
+      (writeShellScriptBin "playwright-cli" ''
+        export PLAYWRIGHT_MCP_EXECUTABLE_PATH="${pkgs.chromium}/bin/chromium"
+        exec ${pkgs.nodejs_24}/bin/node ${pkgs.playwright-driver}/cli.js cli "$@"
+      '')
       bubblewrap
       rclone
       bind
