@@ -4,3 +4,4 @@
 
 # This repository utility is stored beside the Bash package but is not a dotfile.
 (^|/)network-diagnostics\.sh$
+(^|/)list-secret-names\.sh$
