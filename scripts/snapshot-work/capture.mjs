@@ -10,7 +10,7 @@ import { backupProfiles } from './chromium-session.mjs';
 const execFile = promisify(execFileCallback);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const pngMagic = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-const browserApp = w => /chromium|google-chrome/i.test(w.app_id || '');
+const browserApp = w => /chromium|google-chrome|helium/i.test(w.app_id || '');
 const slug = s => String(s ?? 'unnamed').replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 65) || 'unnamed';
 const errorText = e => (e.stderr?.toString().trim() || e.message || String(e));
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -24,9 +24,9 @@ export function windowOrder(windows, workspaces) {
     || (a.layout?.pos_in_scrolling_layout?.[1]??0)-(b.layout?.pos_in_scrolling_layout?.[1]??0) || a.id-b.id);
 }
 
-// A unique match is mandatory; never guess which Chromium window receives keys.
+// A unique match is mandatory; never guess which browser window receives keys.
 export function matchBrowserWindow(window, profiles) {
-  const title = String(window.title || '').replace(/ [—–-] (Chromium|Google Chrome)(?: .*)?$/, '');
+  const title = String(window.title || '').replace(/ [—–-] (Chromium|Google Chrome|Helium)(?: .*)?$/, '');
   const matches = tab => tab?.title === title || `${tab?.title} - Chromium` === window.title;
   const candidates = profiles.flatMap(p => p.windows.map(w => ({profile:p.name,root:p.root,...w})))
     // Chromium can persist the selected index later than a live tab switch.
@@ -265,8 +265,8 @@ export async function main(argv=process.argv.slice(2)) {
   const {values}=parseArgs({args:argv,options:{help:{type:'boolean',short:'h'},output:{type:'string',short:'o'},'backup-only':{type:'boolean'},'no-tabs':{type:'boolean'},'no-context':{type:'boolean'},'browser-root':{type:'string',multiple:true},'tab-count':{type:'string',multiple:true},cdp:{type:'string'},delay:{type:'string',default:'800'},'tab-delay':{type:'string',default:'5000'}}});
   if(values.help){console.log(`Usage: capture-work [options]
   -o, --output DIR       Override ~/Pictures/snapshot-work/START-TIME/
-  --backup-only          Copy saved Chromium sessions and produce tab inventory
-  --browser-root DIR     Chromium user-data root (repeat for multiple browsers)
+  --backup-only          Copy saved Chromium/Helium sessions and produce tab inventory
+  --browser-root DIR     Chromium/Helium user-data root (repeat for multiple browsers)
   --cdp http://127.0.0.1:PORT  Capture tabs and draft text via an ALREADY enabled debugger
   --tab-count ID:COUNT   Explicit tab count for a Niri browser window (repeatable)
   --no-tabs              Window/workspace screenshots only
@@ -275,7 +275,7 @@ export async function main(argv=process.argv.slice(2)) {
   --tab-delay MILLISECONDS  Wait before every browser tab screenshot (default 5000)
 
 By default, tabs are captured with Ctrl+Tab using a uniquely matched saved
-Chromium session window as the count. This is best effort: session state may
+Chromium/Helium session window as the count. This is best effort: session state may
 lag, titles may repeat, and discarded tabs may reload when selected. No browser
 is started/restarted. Ambiguous windows are reported and skipped. Use --cdp
 when already available for exact target enumeration and draft text capture.
@@ -301,7 +301,7 @@ closes a window, saves a document, or unlocks the desktop. See README.md.`);retu
   const checkCancelled=()=>{if(cancelled)throw Error('Capture interrupted; partial results retained');};
   console.log(`Saving to ${destination}`);
   try {
-    const roots=values['browser-root']||['chromium','google-chrome','google-chrome-beta'].map(n=>path.join(os.homedir(),'.config',n));
+    const roots=values['browser-root']||['chromium','google-chrome','google-chrome-beta','net.imput.helium'].map(n=>path.join(os.homedir(),'.config',n));
     report.browserBackup=await backupProfiles(roots,destination);
     await jsonWrite(path.join(destination,'browser-inventory.json'),report.browserBackup);
     report.warnings.push(...report.browserBackup.warnings,...report.browserBackup.profiles.flatMap(p=>p.warnings.map(w=>`${p.name}: ${w}`)));

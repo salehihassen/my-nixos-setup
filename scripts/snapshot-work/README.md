@@ -68,11 +68,12 @@ daemon. For default keyboard tab capture, the host must provide either:
 
 `--no-tabs` and `--backup-only` need no input-injection helper. An already
 enabled `--cdp` browser debugger also bypasses keyboard tab switching. Per-tab
-capture supports Chrome/Chromium; other applications, including other browser
-families, receive ordinary window screenshots only. The default profile roots
-are `~/.config/chromium`, `~/.config/google-chrome`, and
-`~/.config/google-chrome-beta`. For another profile location, pass its user-data
-root with `--browser-root` (repeatable), not its `Default` subdirectory.
+capture supports Chrome/Chromium and Helium; other applications, including other
+browser families, receive ordinary window screenshots only. The default profile roots
+are `~/.config/chromium`, `~/.config/google-chrome`,
+`~/.config/google-chrome-beta`, and `~/.config/net.imput.helium`. For another
+profile location, pass its user-data root with `--browser-root` (repeatable),
+not its `Default` subdirectory.
 
 ## Running a capture
 
@@ -120,17 +121,18 @@ The raw backup is kept as `original-clipboard.bin` plus MIME metadata. Multiple
 clipboard formats and clipboard history cannot be restored exactly.
 If the clipboard was initially empty, it is cleared again after capture.
 
-## Chromium tabs
+## Chromium and Helium tabs
 
-The default works with an already open Chromium, without changing launch flags:
+The default works with an already open Chromium or Helium, without changing
+launch flags:
 
 1. Copy each profile's saved `Sessions/Session_*` and `Tabs_*` files before
    taking screenshots. This includes historical files for recovery. The browser
    is still running, so these copies are not an atomic browser snapshot.
 2. Parse the newest Session file into a best-effort tab inventory, with selected
    tabs and navigation URLs. Encrypted/unknown formats are backed up but not parsed.
-3. Uniquely match each Niri Chromium window's active title against all saved tabs
-   in each browser window, tolerating a stale saved selected-tab index. Use that
+3. Uniquely match each supported Niri browser window's active title against all
+   saved tabs in each browser window, tolerating a stale saved selected-tab index. Use that
    window's saved tab count to capture the current tab, advance
    with Ctrl+Tab, and repeat. Reverse the issued advances with Ctrl+Shift+Tab
    afterward to return to the original tab.

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { parseSession } from './chromium-session.mjs';
 import { captureDesktop, matchBrowserWindow, gallery, saveClipboard, restoreClipboard } from './capture.mjs';
 
@@ -62,6 +64,42 @@ test('browser matching tolerates a stale selected index without guessing between
   assert.equal(matchBrowserWindow({title:'Current work - Chromium'},profiles),null);
 });
 
+test('Helium titles match saved tabs and still refuse ambiguous windows',()=>{
+  const profiles=[{name:'Default',windows:[
+    {id:1,selectedTab:{title:'Earlier tab'},tabs:[{title:'Earlier tab'},{title:'Current work'}]},
+  ]}];
+  for(const separator of ['-','—','–']) {
+    assert.equal(matchBrowserWindow({title:`Current work ${separator} Helium`},profiles).id,1);
+  }
+  profiles[0].windows.push({id:2,selectedTab:{title:'Current work'},tabs:[{title:'Current work'}]});
+  assert.equal(matchBrowserWindow({title:'Current work - Helium'},profiles),null);
+});
+
+test('default profile discovery includes Helium sessions without desktop capture',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'capture-helium-test-'));
+  try {
+    const root=path.join(dir,'.config','net.imput.helium');
+    const sessions=path.join(root,'Default','Sessions');
+    await fs.mkdir(sessions,{recursive:true});
+    await fs.writeFile(path.join(sessions,'Session_100'),session(
+      record(0,i32(100),i32(1)),record(2,i32(1),i32(0)),nav(1,0,'https://example.test/','Helium draft'),
+      record(0,i32(100),i32(2)),record(2,i32(2),i32(1)),nav(2,0,'https://example.test/other','Other tab')
+    ));
+    const output=path.join(dir,'capture');
+    await promisify(execFile)(process.execPath,[new URL('./capture.mjs',import.meta.url).pathname,'--backup-only','--output',output],{env:{...process.env,HOME:dir}});
+    const inventory=JSON.parse(await fs.readFile(path.join(output,'browser-inventory.json'),'utf8'));
+    assert.equal(inventory.profiles.length,1);
+    assert.equal(inventory.profiles[0].root,root);
+    const match=matchBrowserWindow({title:'Helium draft - Helium'},inventory.profiles);
+    assert.equal(match.tabs.length,2);
+    assert.equal(match.tabs[1].title,'Other tab');
+    const report=JSON.parse(await fs.readFile(path.join(output,'manifest.json'),'utf8'));
+    assert.equal(report.status,'session-backup-only');
+    assert.deepEqual(report.captures,[]);
+    assert.deepEqual(report.errors,[]);
+  } finally {await fs.rm(dir,{recursive:true,force:true});}
+});
+
 function fixture({failWindow,failProbe=false,interruptAt}={}){
   const windows=[
     {id:4,workspace_id:20,app_id:'editor',is_focused:false,layout:{pos_in_scrolling_layout:[1,1]}},
@@ -93,6 +131,16 @@ test('captures all columns, workspaces and monitors and restores per-output focu
   assert.deepEqual(browser,[1]);assert.deepEqual(calls.at(-1),['focus',2,true]);
   assert.ok(calls.some(c=>c[0]==='workspace'&&c[1]===20));
   assert.ok(calls.some(c=>c[0]==='workspace'&&c[1]===21));
+});
+
+test('Helium windows enter tab capture alongside Chromium windows',async()=>{
+  const {io,report}=fixture();
+  const windows=await io.query('windows');
+  windows.find(w=>w.id===3).app_id='helium';
+  windows.find(w=>w.id===4).app_id='net.imput.helium';
+  const browser=[];
+  await captureDesktop(io,report,{context:false},async w=>browser.push(w.id));
+  assert.deepEqual(browser,[1,3,4]);
 });
 
 test('a failed window capture does not prevent others or focus restoration',async()=>{

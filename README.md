@@ -230,7 +230,7 @@ packages the implementation; `"checkout"` executes editable source under
 `dotfilesRoot/scripts/snapshot-work`. J2 selects checkout mode. Both expose
 `capture-work`, share source and tests, and create private output under
 `~/Pictures/snapshot-work/{UTC-start-timestamp}/`. Open `index.html` for the gallery;
-`manifest.json` records coverage and errors. Chromium tabs get at least five
+`manifest.json` records coverage and errors. Chromium and Helium tabs get at least five
 seconds each before capture. Niri traversal visits every window across monitors
 and workspaces, bringing off-screen columns into view. This does not enumerate
 hidden terminal panes or capture whole document scrollback. Browser session tab
