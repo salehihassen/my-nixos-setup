@@ -751,6 +751,16 @@ sudo dd \
 
 `dd` destroys the contents of `of=`. A wrong device can erase an internal disk.
 The ISO may instead be copied to a GLIM or Ventoy-style multiboot USB.
+For GLIM, place it in `/boot/iso/nixos/` and keep its generated
+`nixos-recovery-...-x86_64-linux.iso` filename. The recovery image includes
+`/boot/grub/loopback.cfg`, which loads its EFI menu, preserves GLIM's selected
+loop device when switching between ISO menus, and forwards GLIM's
+`iso_path` through the kernel's `findiso=` argument. An initrd service locates
+that file on a FAT32 volume and attaches it read-only as a loop device, allowing
+the normal label-based ISO mount to succeed with the systemd initrd.
+Existing images without that support need a GLIM entry that loads a supplemental
+findiso initrd as well as their original initrd; changing the menu path alone
+is insufficient.
 
 After booting the ISO and connecting to the network, run:
 
