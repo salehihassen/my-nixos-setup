@@ -270,6 +270,7 @@
       "docker-sbx"
       "discord"
       "discord-unwrapped"
+      "zoom"
     ];
 
   environment.systemPackages = with pkgs; [

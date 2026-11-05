@@ -51,6 +51,7 @@
 
     # Browsers and communication
     discord
+    zoom-us
 
     # Backups
     borgbackup
