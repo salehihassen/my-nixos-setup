@@ -141,6 +141,7 @@
       homeModules.snapshot-work = ./home/snapshot-work.nix;
       homeModules.av-editor = ./home/av-editor.nix;
       homeModules.hardware-design = ./home/hardware-design.nix;
+      homeModules.kubernetes = ./home/kubernetes.nix;
       homeModules.desktop-control = ./home/desktop-control.nix;
 
       nixosModules.desktop-control = ./modules/desktop-control.nix;
@@ -155,6 +156,7 @@
             ./home/snapshot-work.nix
             ./home/av-editor.nix
             ./home/hardware-design.nix
+            ./home/kubernetes.nix
             ./home/desktop-control.nix
             ./home/j2.nix
           ];

@@ -35,8 +35,9 @@ flake.nix
 │       ├── home/snapshot-work.nix optional window/workspace/browser captures
 │       ├── home/av-editor.nix     optional media applications
 │       ├── home/hardware-design.nix  optional hardware design applications
+│       ├── home/kubernetes.nix    optional k3d, kubectl, k9s, and Helm tooling
 │       └── home/<host>.nix        per-host user applications
-├── homeModules.{portable,desktop,helium,snapshot-work,av-editor,hardware-design}
+├── homeModules.{portable,desktop,helium,snapshot-work,av-editor,hardware-design,kubernetes}
 ├── lib.mkStandaloneHome           portable Home Manager on non-NixOS Linux
 ├── checks.x86_64-linux.*              standalone builds and snapshot checks
 └── packages.x86_64-linux.recoveryIso
@@ -44,8 +45,8 @@ flake.nix
 
 `mkHostFor` integrates Home Manager into every NixOS host. Its default profile
 contains only `home/portable.nix`; desktop hosts must opt into the desktop module
-explicitly. `j2` composes portable, desktop, Helium, snapshot-work, AV editor, hardware design, and
-`home/j2.nix`, while `b1` currently receives only portable. Home Manager uses
+explicitly. `j2` composes portable, desktop, Helium, snapshot-work, AV editor, hardware design,
+Kubernetes, and `home/j2.nix`, while `b1` currently receives only portable. Home Manager uses
 the host's Nixpkgs package set, so host-level package policy such as `j2`'s
 unfree allowlist also applies to
 its Home Manager packages.
