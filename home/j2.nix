@@ -56,6 +56,9 @@
     # Backups
     borgbackup
 
+    # Permanently redact text and images from PDFs before sharing.
+    censor
+
     # Games
     (steam.override {
       # Older LWJGL versions query display modes through this command.

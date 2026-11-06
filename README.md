@@ -63,6 +63,28 @@ For example, Stow owns the editable Ghostty and tmux configurations while Home
 Manager installs Ghostty and generates `.config/tmux/nix-plugins.conf` with
 pinned paths for Sensible, Resurrect, and Continuum.
 
+## PDF redaction on J2
+
+J2 installs [Censor](https://codeberg.org/censor/Censor) through `home/j2.nix`.
+It uses the existing pinned Nixpkgs package; no Flatpak setup or additional
+flake input is needed. Apply it with:
+
+```bash
+sudo nixos-rebuild switch --flake /etc/nixos#j2
+```
+
+Launch **Censor** from the application launcher or run `censor`. Open the PDF,
+draw rectangles around sensitive content, and use **Save As** to create a
+separate redacted PDF. Censor applies permanent text/image redactions and
+sanitizes the saved document. **Save Draft** retains the underlying content for
+later editing; keep drafts private. Reopen the final output and check both its
+appearance and copy/paste results before sharing.
+
+Normal saving preserves selectable text outside the redactions. Censor also
+supports rasterized saving if you want image-only pages, at the cost of text
+selection, search, and accessibility. CoverUP uses this image-based approach;
+Censor provides both options in the native Nix package.
+
 ## Ubuntu VMs on J2
 
 J2 enables KVM/libvirt and Virtual Machine Manager (`virt-manager`), and grants
