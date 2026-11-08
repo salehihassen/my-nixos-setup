@@ -235,6 +235,16 @@ binds {
     F10 allow-when-locked=true { spawn "noctalia" "msg" "media" "toggle"; }
  
     Mod+O repeat=false { toggle-overview; }
+    // Native workspace names are session-only; unnamed workspaces stay dynamic.
+    Mod+Alt+G repeat=false hotkey-overlay-title="Go to named workspace" {
+        spawn "~/niri-workspace" "switch";
+    }
+    Mod+Ctrl+Alt+G repeat=false hotkey-overlay-title="Move column to named workspace" {
+        spawn "~/niri-workspace" "move";
+    }
+    Mod+Shift+Alt+G repeat=false hotkey-overlay-title="Manage workspace name and monitor" {
+        spawn "~/niri-workspace" "manage";
+    }
     Mod+Q repeat=false { close-window; }
     Mod+Shift+Q repeat=false { spawn-sh "kill -9 $(niri msg -j focused-window | jq '.pid')"; }
 

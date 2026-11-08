@@ -34,6 +34,10 @@ fill_mode = "crop"
 [widget.clock]
 format = "{:%I:%M %p}"
 
+[widget.workspaces]
+label_source = "name"
+max_label_chars = 16
+
 [widget.capture-target]
 type = "saleh/capture-target:label"
 

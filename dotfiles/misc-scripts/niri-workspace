@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+
+# On-demand Fuzzel controls for niri's native, session-only workspace names.
+set -euo pipefail
+
+case "${1:-}" in
+  switch|move|manage) mode="$1" ;;
+  *) printf 'Usage: %s switch|move|manage\n' "${0##*/}" >&2; exit 2 ;;
+esac
+
+message() {
+  printf '%s\n' "$1" >&2
+  printf 'OK\n' | fuzzel --dmenu --only-match --prompt 'Workspace: ' \
+    --mesg "$1" --lines 1 >/dev/null || true
+}
+
+fail() {
+  message "$1"
+  exit 1
+}
+
+run_action() {
+  niri msg action "$@" || fail 'niri could not apply the workspace action.'
+}
+
+multiple_outputs() {
+  # Connected but disabled displays have no logical position and cannot host
+  # workspaces. Query on demand so docking changes need no monitor process.
+  niri msg -j outputs | jq -e '[.[] | select(.logical != null)] | length > 1' >/dev/null
+}
+
+workspaces="$(niri msg -j workspaces)"
+workspace_id="$(jq -er '.[] | select(.is_focused) | .id' <<< "$workspaces")"
+
+# Fuzzel temporarily takes keyboard focus. Verify the original workspace/window
+# after it closes, rather than acting on whatever the user might have switched to.
+check_focus() {
+  workspaces="$(niri msg -j workspaces)"
+  jq -e --argjson id "$workspace_id" \
+    'any(.[]; .id == $id and .is_focused)' <<< "$workspaces" >/dev/null \
+    || fail 'The focused workspace changed. Please try again.'
+  if [[ "$mode" == move ]]; then
+    local current_window
+    current_window="$(niri msg -j focused-window)"
+    [[ "$(jq -r '.id // empty' <<< "$current_window")" == "$window_id" ]] \
+      || fail 'The focused window changed. Please try again.'
+  fi
+}
+
+if [[ "$mode" == manage ]]; then
+  name="$(jq -r --argjson id "$workspace_id" '.[] | select(.id == $id) | .name // ""' <<< "$workspaces")"
+  menu_actions=(name)
+  menu_labels=('Name workspace')
+  if [[ -n "$name" ]]; then
+    menu_labels=('Rename workspace' 'Remove name / return to dynamic')
+    menu_actions+=(remove)
+  fi
+  if multiple_outputs; then
+    menu_labels+=('Move workspace to monitor on left' 'Move workspace to monitor on right')
+    menu_actions+=(move-left move-right)
+  fi
+
+  selection="$(printf '%s\n' "${menu_labels[@]}" |
+    fuzzel --dmenu --only-match --index --prompt 'Manage workspace: ' \
+      --lines "${#menu_labels[@]}" --width 50)" || exit 0
+  [[ "$selection" =~ ^[0-9]+$ ]] || exit 0
+  (( selection < ${#menu_actions[@]} )) || exit 0
+
+  case "${menu_actions[$selection]}" in
+    name)
+      new_name="$(fuzzel --dmenu --prompt-only 'Workspace name: ' --search "$name")" || exit 0
+      new_name="$(jq -nr --arg name "$new_name" '$name | gsub("^\\s+|\\s+$"; "")')"
+      [[ -n "$new_name" ]] || exit 0
+      [[ ! "$new_name" =~ ^[0-9]+$ ]] || fail 'Please use a nickname, rather than only digits.'
+      jq -en --arg name "$new_name" '$name | test("[[:cntrl:]]") | not' >/dev/null \
+        || fail 'Workspace names must be a single line without control characters.'
+      check_focus
+      # Do not silently take a name from another workspace.
+      jq -e --arg name "$new_name" --argjson id "$workspace_id" \
+        'any(.[]; .id != $id and .name == $name)' <<< "$workspaces" >/dev/null \
+        && fail 'Another workspace already has that name. Choose a different name.'
+      run_action set-workspace-name -- "$new_name"
+      ;;
+    remove)
+      check_focus
+      run_action unset-workspace-name
+      ;;
+    move-left|move-right)
+      check_focus
+      multiple_outputs || fail 'Another display is no longer available. Please try again.'
+      direction="${menu_actions[$selection]#move-}"
+      run_action "move-workspace-to-monitor-$direction"
+      ;;
+    *) exit 0 ;;
+  esac
+  exit 0
+fi
+
+if [[ "$mode" == move ]]; then
+  window_id="$(niri msg -j focused-window | jq -r '.id // empty')"
+  [[ -n "$window_id" ]] || fail 'Focus a window in the column you want to move first.'
+  prompt='Move column to workspace: '
+else
+  prompt='Go to workspace: '
+fi
+
+named="$(jq '[.[] | select(.name != null)] | sort_by(.output // "", .idx)' <<< "$workspaces")"
+count="$(jq length <<< "$named")"
+(( count > 0 )) || fail 'No named workspaces yet. Use Mod+Shift+Alt+G to name the current workspace.'
+
+selection="$(jq -r '.[] | "\(.name | gsub("[[:cntrl:]]"; " "))  [\(.output // "disconnected")]"' <<< "$named" |
+  fuzzel --dmenu --only-match --index --prompt "$prompt" --lines 10 --minimal-lines --width 50)" || exit 0
+[[ "$selection" =~ ^[0-9]+$ ]] || exit 0
+target="$(jq -ce --argjson index "$selection" '.[$index] // empty' <<< "$named")"
+name="$(jq -r '.name' <<< "$target")"
+
+# Resolve selections by the captured ID, so renaming/removal during the picker
+# cannot send a column to a different workspace with a reused name.
+workspaces="$(niri msg -j workspaces)"
+jq -e --argjson target "$target" \
+  'any(.[]; .id == $target.id and .name == $target.name)' <<< "$workspaces" >/dev/null \
+  || fail 'That workspace was renamed or removed. Please choose again.'
+
+if [[ "$mode" == move ]]; then
+  check_focus
+  run_action move-column-to-workspace -- "$name"
+else
+  run_action focus-workspace -- "$name"
+fi
