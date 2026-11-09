@@ -79,6 +79,7 @@
       unzip
       git
       curl
+      checkpwn
       uv
       nodejs_24
       pnpm
