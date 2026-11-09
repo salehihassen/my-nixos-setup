@@ -56,6 +56,9 @@
     # Backups
     borgbackup
 
+    # Oracle cloud cli
+    oci-cli
+
     # Permanently redact text and images from PDFs before sharing.
     censor
 
