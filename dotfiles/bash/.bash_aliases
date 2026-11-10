@@ -69,6 +69,11 @@ __dev_shell_prompt_short() {
 
 export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\][\[\e]0;\u@\h: \W\a\]\u@\h:\W]\[\033[1;33m\]$(git_current_branch_short)\[\033[1;32m\]\$\[\033[0m\] '
 
+vfile() { local f; f=$(rg --files | rg "$1" | head -n 1); [ -n "$f" ] && nvim "$f"; }
+
+
+vcontent() { local f; f=$(rg -l -- "$1" | head -n 1); [ -n "$f" ] && nvim "$f"; }
+
 # if I need an even shorter PS1
 # export PS1='\n\[\033[1;34m\]$(__dev_shell_prompt_short)\[\033[1;32m\]\W\[\033[1;33m\]$(git_current_branch_short)\[\033[0m\]\$ '
 
