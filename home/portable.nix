@@ -80,6 +80,7 @@
       git
       curl
       checkpwn
+      gitleaks
       uv
       nodejs_24
       pnpm
