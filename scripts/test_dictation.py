@@ -68,6 +68,56 @@ class DictationTests(unittest.IsolatedAsyncioTestCase):
              patch.object(dictation, "command", AsyncMock(return_value=("", 0))):
             await self.controller.session(mode, 42)
 
+    async def test_cleanup_starts_after_transcription_and_whisper_timer(self):
+        self.controller.polish = AsyncMock(return_value="A faithful transcript.")
+        original_arm = self.controller.arm
+
+        async def prepare():
+            self.assertEqual(self.controller.phase, "polishing")
+            self.assertNotIn("voxtype", self.controller.busy)
+            self.assertIn("ollama", self.controller.busy)
+            self.assertTrue(any("Listening" in call.kwargs.get("title", "")
+                                for call in self.controller.notify.await_args_list))
+            self.assertFalse(list(self.runtime.glob("session-*/transcript.txt")))
+
+        with patch.object(self.controller, "arm", wraps=original_arm) as arm:
+            # The session fixture replaces preparation; supply its side effect.
+            await self.session("polished", preparation_error=prepare)
+            self.assertEqual([call.args[0] for call in arm.await_args_list], ["voxtype", "ollama"])
+        self.controller.deliver.assert_awaited_once_with(
+            "A faithful transcript.", 42, result_label="Polished (unchanged)")
+
+    async def test_empty_transcript_never_loads_cleanup_model(self):
+        self.controller.polish = AsyncMock()
+        await self.session("polished", " ")
+        self.controller.prepare_ollama.assert_not_awaited()
+        self.controller.polish.assert_not_awaited()
+        self.controller.deliver.assert_not_awaited()
+        self.assertEqual(self.controller.busy, set())
+        self.assertFalse(list(self.runtime.glob("session-*")))
+
+    async def test_cancel_during_cleanup_load_discards_text_and_stops_services(self):
+        began = asyncio.Event()
+
+        async def prepare():
+            began.set()
+            await asyncio.Event().wait()
+
+        self.controller.polish = AsyncMock()
+        task = asyncio.create_task(self.session("polished", preparation_error=prepare))
+        await asyncio.wait_for(began.wait(), 2)
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.controller.deliver.assert_not_awaited()
+        self.controller.polish.assert_not_awaited()
+        stops = [call.args for call in self.controller.systemctl.await_args_list if call.args[0] == "stop"]
+        self.assertIn(("stop", "voxtype.service"), stops)
+        self.assertIn(("stop", "ollama.service"), stops)
+        self.assertEqual(self.controller.phase, "idle")
+        self.assertEqual(self.controller.busy, set())
+        self.assertFalse(list(self.runtime.glob("session-*")))
+
     async def test_faithful_never_starts_ollama_and_cleans_transcript(self):
         await self.session("faithful")
         self.controller.prepare_ollama.assert_not_awaited()

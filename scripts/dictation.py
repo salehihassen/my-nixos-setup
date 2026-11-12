@@ -284,15 +284,6 @@ class Controller:
             await self.notify(f"{description}. Wait for Listening before speaking.",
                               title=f"Dictation · Preparing · {mode_label}")
             await self.prepare_voxtype()
-            can_polish = mode == "polished"
-            if can_polish:
-                try:
-                    await self.prepare_ollama()
-                except (OSError, ValueError, RuntimeError, asyncio.TimeoutError):
-                    can_polish = False
-                    mode_label = "Faithful (polishing unavailable)"
-                    await self.notify("Polishing unavailable — recording in Faithful mode")
-                    await self.arm("ollama")
             revision = self.events.revision
             await command(self.config["voxtype"], "record", "start", f"--file={transcript}",
                           "--no-auto-submit", "--no-smart-auto-submit", "--no-osd")
@@ -313,22 +304,31 @@ class Controller:
             if not text:
                 await self.notify("No speech recognized")
                 return
-            if can_polish:
+            if mode == "polished":
                 self.phase = "polishing"
-                await self.notify("Local filler and correction cleanup…", title="Dictation · Polishing")
+                await self.notify("Loading local cleanup model…", title="Dictation · Polishing")
                 try:
-                    cleaned = await self.polish(text)
-                    mode_label = "Polished (unchanged)" if cleaned == text else "Polished"
-                    text = cleaned
-                except PolishRejected:
-                    mode_label = "Faithful (polishing rejected)"
-                    await self.notify("Cleanup could not be verified; using the original transcript.",
-                                      title="Dictation · Polishing rejected")
+                    # Slow or unavailable Ollama must never delay Listening.
+                    await self.prepare_ollama()
                 except (OSError, ValueError, RuntimeError, asyncio.TimeoutError):
-                    mode_label = "Faithful (polishing failed)"
-                    await self.notify("Cleanup failed; using faithful transcript")
-                finally:
+                    mode_label = "Faithful (polishing unavailable)"
+                    await self.notify("Polishing unavailable; using faithful transcript")
                     await self.arm("ollama")
+                else:
+                    await self.notify("Local filler and correction cleanup…", title="Dictation · Polishing")
+                    try:
+                        cleaned = await self.polish(text)
+                        mode_label = "Polished (unchanged)" if cleaned == text else "Polished"
+                        text = cleaned
+                    except PolishRejected:
+                        mode_label = "Faithful (polishing rejected)"
+                        await self.notify("Cleanup could not be verified; using the original transcript.",
+                                          title="Dictation · Polishing rejected")
+                    except (OSError, ValueError, RuntimeError, asyncio.TimeoutError):
+                        mode_label = "Faithful (polishing failed)"
+                        await self.notify("Cleanup failed; using faithful transcript")
+                    finally:
+                        await self.arm("ollama")
             self.phase = "delivering"
             await self.deliver(text, starting_window, result_label=mode_label)
         except asyncio.CancelledError:

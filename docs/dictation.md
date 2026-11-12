@@ -33,12 +33,14 @@ If Whisper has already omitted a filler, the polishing stage never sees it.
 
 Before capture, **Preparing · Faithful** or **Preparing · Polished** identifies
 the chosen mode and its processing. Wait for **Listening · [mode]** before
-speaking. **Preparing** includes loading the models; **Transcribing** and
-**Polishing** mean the microphone is closed and inference is running.
+speaking. **Preparing** loads Whisper only. In polished mode the cleanup model
+loads after recording and transcription finish, so it cannot delay Listening.
+**Transcribing** and **Polishing** mean the microphone is closed and inference
+is running; **Polishing** includes cleanup-model startup.
 Completion identifies the output mode, including **Polished (unchanged)** when
 cleanup returns identical text and **Faithful (polishing unavailable/failed/rejected)**
-when polished mode falls back. The Listening notification also identifies a
-fallback that occurs during preparation.
+when polished mode falls back. Listening shows the requested mode; an unavailable
+cleanup model is reported after transcription, and the faithful text is retained.
 Noctalia's existing privacy widget shows actual microphone capture. Recording
 automatically ends after five minutes.
 
@@ -98,9 +100,9 @@ target. A shortcut starts the socket, which starts one event-driven Python
 controller. Voxtype's inotify state events drive progress; there is no polling
 monitor. A short, bounded HTTP readiness check is used only while Ollama starts.
 
-Faithful mode starts only Voxtype. Polished mode also starts the Home Manager
-user `ollama.service`, reserved by this module for dictation, on
-**127.0.0.1:11435**. The default/system Ollama server on port 11434 is separate.
+Faithful mode starts only Voxtype. After a nonempty transcript is ready, polished
+mode starts the Home Manager user `ollama.service`, reserved by this module for
+dictation, on **127.0.0.1:11435**. The default/system Ollama server on port 11434 is separate.
 The dictation server uses the user's model files, disables cloud support, and
 does not download models during a recording.
 
