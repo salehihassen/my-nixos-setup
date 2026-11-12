@@ -48,6 +48,7 @@
 
   home.packages = with pkgs; [
     home-assistant-cli
+    huggingface-cli
 
     # Browsers and communication
     discord
