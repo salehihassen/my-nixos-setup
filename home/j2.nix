@@ -60,6 +60,22 @@
     # Oracle cloud cli
     oci-cli
 
+    (stdenvNoCC.mkDerivation (finalAttrs: {
+      pname = "nebius-cli";
+      version = "0.12.305";
+      src = fetchurl {
+        url = "https://artifacts.nebius.cloud/cli/release/${finalAttrs.version}/linux/x86_64/nebius";
+        hash = "sha256-akJ7+YcJlOWpnkKUOV6ZPUxiqfRJrwnWJDVuS5beNWI=";
+      };
+      dontUnpack = true;
+      installPhase = ''
+        runHook preInstall
+        install -Dm755 "$src" "$out/bin/nebius"
+        runHook postInstall
+      '';
+      meta.mainProgram = "nebius";
+    }))
+
     # Permanently redact text and images from PDFs before sharing.
     censor
 
