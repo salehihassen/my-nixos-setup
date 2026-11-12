@@ -200,6 +200,15 @@
               ./home/dictation.nix
               { programs.dictation.enable = true; }
             ]).activationPackage;
+          maintenance-tests =
+            pkgs.runCommand "maintenance-tests"
+              { nativeBuildInputs = [ pkgs.python3 pkgs.bash ]; }
+              ''
+                cp ${./scripts/nixos-maintain.sh} nixos-maintain.sh
+                cp ${./scripts/test_nixos_maintain.py} test_nixos_maintain.py
+                python3 -B test_nixos_maintain.py
+                touch "$out"
+              '';
           dictation-tests =
             pkgs.runCommand "dictation-tests"
               {
