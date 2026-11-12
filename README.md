@@ -329,9 +329,8 @@ activating it on another machine:
 
    In particular, review Noctalia's wallpaper path, SSH configuration, aliases,
    and personal application commands. MPD already uses the configured user's
-   home directory. The `n-*` aliases use `DOTFILES_ROOT` (default `/etc/nixos`);
-   the standalone [maintenance command](docs/maintenance.md) derives its checkout
-   from its script location and validates the selected host.
+   home directory. The rebuild aliases use `DOTFILES_ROOT` (default `/etc/nixos`)
+   and select the current hostname. The update aliases use the current directory.
 5. Review the timezone, bootloader, graphics, power management, and desktop
    choices. The new-machine template enables a Niri desktop and GRUB by default.
 6. Enable optional unfree packages only on the host that needs them. Claude Code
@@ -356,20 +355,6 @@ and per-home configuration. See the
 [NixOS stateVersion option](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/misc/version.nix).
 
 ## Common workflow
-
-For routine evaluation, builds, and scoped updates, use the standalone
-[maintenance command](docs/maintenance.md) from any directory:
-
-```bash
-/etc/nixos/scripts/nixos-maintain.sh check
-/etc/nixos/scripts/nixos-maintain.sh build j2
-/etc/nixos/scripts/nixos-maintain.sh update j2
-```
-
-It needs sudo only for explicit `test`, `switch`, and `boot` operations.
-`update` changes only `nixpkgs` and `home-manager`, displays the lock diff,
-evaluates, and builds without activation. Existing shell aliases are separate;
-use the script when you need its host validation and scoped-update behavior.
 
 Run these commands from the checkout. New files must be added to Git before
 normal flake evaluation will see them; edits to already tracked files do not
@@ -422,9 +407,12 @@ restart services; it is not a simulation. See the
 Update pinned inputs deliberately, then rebuild:
 
 ```bash
-/etc/nixos/scripts/nixos-maintain.sh update j2
+nix flake update
+git diff -- flake.lock
+nix flake check --no-build
+nixos-rebuild build --flake /etc/nixos#j2
 # Review the lock diff and build result, then activate separately:
-/etc/nixos/scripts/nixos-maintain.sh switch j2
+sudo nixos-rebuild switch --flake /etc/nixos#j2
 ```
 
 J2's custom Caddy/Porkbun source has a fixed-output hash in
