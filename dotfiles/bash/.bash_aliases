@@ -16,6 +16,15 @@ edit-aliases() {
 alias docker-ps='docker ps -a --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"'
 alias myip='curl ifconfig.me'
 alias zen='zen-beta'
+unalias nebius 2>/dev/null || true
+nebius() (
+  # promptui miscounts wrapped rows when project names exceed the terminal width.
+  if [[ -t 1 && ${1-} == profile && ( ${2-} == create || ${2-} == update ) ]]; then
+    tput rmam
+    trap 'tput smam' EXIT
+  fi
+  command nebius --config "$HOME/.config/.nebius/config.yaml" "$@"
+)
 
 # get current branch name if in a git repo
 git_current_branch() {

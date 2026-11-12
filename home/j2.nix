@@ -57,9 +57,9 @@
     # Backups
     borgbackup
 
-    # Oracle cloud cli
+    # Cloud CLIs
+    awscli2
     oci-cli
-
     (stdenvNoCC.mkDerivation (finalAttrs: {
       pname = "nebius-cli";
       version = "0.12.305";
