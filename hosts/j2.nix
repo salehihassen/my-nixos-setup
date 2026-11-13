@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, username, ... }:
+{ config, lib, pkgs, inputs, username, ... }:
 # Unique setup for j2 laptop
 {
   imports = [
@@ -21,14 +21,10 @@
     extraSetFlags = [ "--accept-dns=true" ];
   };
 
-  # SSH access to these two core machines must not depend on the
-  # Tailscale/systemd-resolved integration being healthy.  Tailscale IPv4
-  # addresses are stable for the lifetime of a node.
-  networking.hosts = {
-    "100.105.0.11" = [ "c2" ];
-    "100.105.0.2" = [ "c3" ];
-    "100.105.0.4" = [ "u2" ];
-  };
+  # Keep local host mappings outside Git and editable without a rebuild.
+  # This file supplies all of /etc/hosts, including localhost and this host.
+  # Use a string so Nix links to the live file instead of copying it to the store.
+  environment.etc.hosts.source = lib.mkForce "/var/lib/local-config/hosts";
   networking.nftables.enable = true;
   networking.firewall = {
     enable = true;
