@@ -261,6 +261,8 @@
       "discord"
       "discord-unwrapped"
       "zoom"
+      "firefox-bin"
+      "firefox-bin-unwrapped"
     ];
 
   environment.systemPackages = with pkgs; [
