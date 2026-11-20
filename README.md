@@ -69,8 +69,9 @@ pinned paths for Sensible, Resurrect, and Continuum.
   settings. Edits are live after `prefix r`; no rebuild is needed.
 - `home/tmux.nix` holds the plugin list. Add a `pkgs.tmuxPlugins.<name>` entry
   there and rebuild; plugin versions follow the locked Nixpkgs input.
-- Continuum saves the tmux layout every 15 minutes and restores it when the
-  first tmux server starts after a reboot. `prefix Ctrl-s` saves immediately
+- Continuum saves the tmux layout every 15 minutes while a client is attached
+  (it runs from the status line, so a detached server does not autosave). The
+  first tmux server started after a reboot restores the last save. `prefix Ctrl-s` saves immediately
   and `prefix Ctrl-r` restores manually. Saves live in `~/.tmux/resurrect/`.
 
 ## PDF redaction on J2
