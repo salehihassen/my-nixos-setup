@@ -63,6 +63,16 @@ For example, Stow owns the editable Ghostty and tmux configurations while Home
 Manager installs Ghostty and generates `.config/tmux/nix-plugins.conf` with
 pinned paths for Sensible, Resurrect, and Continuum.
 
+### tmux
+
+- `dotfiles/tmux/.config/tmux/tmux.conf` holds keybindings, colors, and plugin
+  settings. Edits are live after `prefix r`; no rebuild is needed.
+- `home/tmux.nix` holds the plugin list. Add a `pkgs.tmuxPlugins.<name>` entry
+  there and rebuild; plugin versions follow the locked Nixpkgs input.
+- Continuum saves the tmux layout every 15 minutes and restores it when the
+  first tmux server starts after a reboot. `prefix Ctrl-s` saves immediately
+  and `prefix Ctrl-r` restores manually. Saves live in `~/.tmux/resurrect/`.
+
 ## PDF redaction on J2
 
 J2 installs [Censor](https://codeberg.org/censor/Censor) through `home/j2.nix`.

@@ -10,6 +10,7 @@
 {
   imports = [
     ./ssh.nix
+    ./tmux.nix
   ];
 
   options.dotfiles.stowPackages = lib.mkOption {
@@ -22,7 +23,6 @@
       "bash"
       "git"
       "neovim"
-      "tmux"
     ];
 
     assertions = [
@@ -66,10 +66,6 @@
     home.packages = with pkgs; [
       stow
       bash-completion
-      tmux
-      tmuxPlugins.sensible
-      tmuxPlugins.resurrect
-      tmuxPlugins.continuum
       tree
       htop
       ripgrep
@@ -94,16 +90,7 @@
       bind
       openssl
       wakeonlan
-      xclip # Used by the tmux copy-mode binding.
     ];
-
-    # Keep Nix store paths out of the Stow-owned tmux.conf. Home Manager updates
-    # this bridge whenever the pinned plugin packages change.
-    xdg.configFile."tmux/nix-plugins.conf".text = ''
-      run-shell "${pkgs.tmuxPlugins.sensible}/share/tmux-plugins/sensible/sensible.tmux"
-      run-shell "${pkgs.tmuxPlugins.resurrect}/share/tmux-plugins/resurrect/resurrect.tmux"
-      run-shell "${pkgs.tmuxPlugins.continuum}/share/tmux-plugins/continuum/continuum.tmux"
-    '';
 
     programs.neovim = {
       enable = true;

@@ -285,3 +285,5 @@ alias net-toggle='net-prefer toggle'
 # `printf '\033c'`
 # `reset`
 # `tmux refresh-client`
+
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
