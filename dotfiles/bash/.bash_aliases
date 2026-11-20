@@ -286,4 +286,8 @@ alias net-toggle='net-prefer toggle'
 # `reset`
 # `tmux refresh-client`
 
-export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+# Only point TLS clients at this bundle where it exists (NixOS, Debian/Ubuntu);
+# other portable hosts keep their own default CA path.
+if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+  export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+fi
