@@ -47,6 +47,7 @@
   };
 
   home.packages = with pkgs; [
+    antigravity-cli
     home-assistant-cli
     huggingface-cli
 

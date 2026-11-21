@@ -253,9 +253,10 @@
   # npm-managed Claude Code uses Anthropic's native binary via nix-ld.
   programs.nix-ld.libraries = [ pkgs.alsa-lib ];
 
-  # Allow unfree drivers as needed
+  # Allow selected unfree packages.
   nixpkgs.config.allowUnfreePredicate = pkg:
     builtins.elem (pkgs.lib.getName pkg) [
+      "antigravity-cli"
       "displaylink" # for docking station
       "evdi"
       "steam"
