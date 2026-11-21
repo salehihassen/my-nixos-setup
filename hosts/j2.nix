@@ -256,6 +256,7 @@
   # Allow selected unfree packages.
   nixpkgs.config.allowUnfreePredicate = pkg:
     builtins.elem (pkgs.lib.getName pkg) [
+      "antigravity-acp"
       "antigravity-cli"
       "displaylink" # for docking station
       "evdi"

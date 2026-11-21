@@ -24,6 +24,7 @@ in {
     dataDirectory = "${config.home.homeDirectory}/.t3";
     workingDirectory = config.home.homeDirectory;
     providerPackages = with pkgs; [
+      antigravity-acp
       git
       nodejs_24
       bash
