@@ -192,6 +192,8 @@
 
   hardware.graphics.enable = true;
 
+  programs.steam.enable = true;
+
   services.xserver.videoDrivers = [ "displaylink" "modesetting" ];
   systemd.services.dlm.wantedBy = [ "multi-user.target" ];
 
@@ -256,6 +258,7 @@
     builtins.elem (pkgs.lib.getName pkg) [
       "displaylink" # for docking station
       "evdi"
+      "steam"
       "steam-unwrapped"
       "docker-sbx"
       "discord"
