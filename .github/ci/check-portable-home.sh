@@ -10,6 +10,7 @@ export HOME USER
 
 home="(builtins.getFlake \"git+file://$repo\").lib.mkStandaloneHome {
   username = \"$USER\"; homeDirectory = \"$HOME\"; dotfilesRoot = \"$repo\";
+  homeModules = [ { systemd.user.startServices = false; } ];
 }"
 activation="$(nix build --impure --no-link --print-out-paths -L --expr "($home).activationPackage")"
 "$activation/activate"
