@@ -74,6 +74,47 @@ pinned paths for Sensible, Resurrect, and Continuum.
   first tmux server started after a reboot restores the last save. `prefix Ctrl-s` saves immediately
   and `prefix Ctrl-r` restores manually. Saves live in `~/.tmux/resurrect/`.
 
+## Wi-Fi sign-in diagnostics
+
+When connected to a hotel, train, airport, or other Wi-Fi network that requires
+accepting terms, run this before the longer internet tests:
+
+```bash
+bash /etc/nixos/dotfiles/bash/network-diagnostics.sh --portal-only
+```
+
+The check prints the network's login URL, tests whether it is reachable, and
+shows its IPv4 DNS answers and routes. If a login address in `100.64.0.0/10`
+times out while a Tailscale interface is present, it identifies a possible
+Tailscale firewall conflict and prints recovery commands. A correct Wi-Fi route
+does not rule out filtering of the reply. This warning is a hypothesis; the
+script does not read privileged firewall rules or capture packets.
+
+To test a login URL copied from the browser, including when the network serves
+a sign-in page without redirecting:
+
+```bash
+bash /etc/nixos/dotfiles/bash/network-diagnostics.sh --portal-only \
+  --portal-url 'https://login.example.com/'
+```
+
+The script uses direct IPv4 requests with proxy settings bypassed. It does not
+switch networks, stop VPNs, open browser windows, or accept terms. Exit status
+is `1` when sign-in is detected or a check fails, `0` when the quick check
+finds no portal or failures, and `2` for invalid arguments. A successful probe
+only describes this laptop's current network path; check while directly
+connected to the affected Wi-Fi, rather than through a phone hotspot.
+
+The full script also checks for sign-in first and skips its internet and speed
+tests when a login page is detected. After accepting the terms, rerun normally
+with `--skip-speed` to avoid the default 35 MB speed test. No rebuild is needed.
+
+Replay the portal regression scenarios without internet access:
+
+```bash
+bash /etc/nixos/scripts/test-network-diagnostics.sh
+```
+
 ## PDF redaction on J2
 
 J2 installs [Censor](https://codeberg.org/censor/Censor) through `home/j2.nix`.

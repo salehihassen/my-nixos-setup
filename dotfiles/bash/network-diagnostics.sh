@@ -9,6 +9,9 @@ TIMEOUT_SECONDS=10
 DOWNLOAD_BYTES=25000000
 UPLOAD_BYTES=10000000
 RUN_SPEED_TEST=1
+PORTAL_ONLY=0
+PORTAL_URL=""
+PORTAL_DETECTED=0
 UDP_ECHO_HOST="65.21.106.102"
 UDP_ECHO_PORT=8080
 
@@ -17,6 +20,8 @@ usage() {
 Usage: network-diagnostics.sh [options]
 
 Options:
+  --portal-only            Only check Wi-Fi sign-in and VPN conflicts
+  --portal-url URL         Check a known HTTP(S) login URL directly
   --skip-speed             Skip the Cloudflare transfer test
   --download-bytes NUMBER  Download size (default: 25000000)
   --upload-bytes NUMBER    Upload size (default: 10000000)
@@ -27,6 +32,18 @@ EOF
 
 while (($#)); do
   case "$1" in
+    --portal-only)
+      PORTAL_ONLY=1
+      shift
+      ;;
+    --portal-url)
+      if (($# < 2)) || [[ ! "$2" =~ ^https?:// ]]; then
+        printf 'ERROR: --portal-url requires an HTTP(S) URL.\n' >&2
+        exit 2
+      fi
+      PORTAL_URL="$2"
+      shift 2
+      ;;
     --skip-speed)
       RUN_SPEED_TEST=0
       shift
@@ -40,7 +57,11 @@ while (($#)); do
       shift 2
       ;;
     --timeout)
-      TIMEOUT_SECONDS="${2:?missing timeout}"
+      if (($# < 2)); then
+        printf 'ERROR: --timeout requires a positive integer.\n' >&2
+        exit 2
+      fi
+      TIMEOUT_SECONDS="$2"
       shift 2
       ;;
     -h|--help)
@@ -54,6 +75,11 @@ while (($#)); do
       ;;
   esac
 done
+
+if [[ ! "$TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'ERROR: --timeout must be a positive integer.\n' >&2
+  exit 2
+fi
 
 if ! command -v curl >/dev/null; then
   printf 'ERROR: curl is required.\n' >&2
@@ -81,6 +107,150 @@ fail() {
 warn() {
   warn_count=$((warn_count + 1))
   printf '[WARN] %s\n' "$*"
+}
+
+# Bound optional DNS/service queries as well as HTTP requests.
+portal_command() {
+  if command -v timeout >/dev/null; then
+    timeout "$TIMEOUT_SECONDS" "$@"
+  else
+    "$@"
+  fi
+}
+
+portal_probe() {
+  local result rc code login_url effective_url host addresses address route
+  local first second rest wifi_device device_type
+  local overlap=0 tailscale_present=0
+  local -a direct_curl=(curl -q --noproxy '*' -4 --silent --show-error
+    --proto '=http,https' --proto-redir '=http,https'
+    --connect-timeout "$TIMEOUT_SECONDS" --max-time "$TIMEOUT_SECONDS")
+
+  printf 'Tests use direct IPv4 requests, bypassing proxy settings. No network settings are changed.\n'
+  if command -v nmcli >/dev/null; then
+    while IFS=: read -r wifi_device device_type; do
+      [[ "$device_type" == wifi ]] || continue
+      nmcli -f GENERAL.CONNECTION,IP4.GATEWAY,IP4.DNS device show "$wifi_device" 2>/dev/null || true
+    done < <(nmcli -t -f DEVICE,TYPE device status 2>/dev/null)
+  fi
+  if command -v busctl >/dev/null; then
+    result="$(portal_command busctl get-property org.freedesktop.NetworkManager \
+      /org/freedesktop/NetworkManager org.freedesktop.NetworkManager \
+      ConnectivityCheckAvailable 2>/dev/null)"
+    if [[ "$result" == 'b false' ]]; then
+      warn 'NetworkManager captive-portal detection is unavailable; automatic sign-in detection is disabled.'
+    fi
+  fi
+
+  login_url="$PORTAL_URL"
+  if [[ -z "$login_url" ]]; then
+    # Expect an empty HTTP 204. Do not follow redirects until the login URL
+    # has been recorded: HTTPS-only probes hide this part of the failure.
+    result="$("${direct_curl[@]}" --output /dev/null \
+      --write-out $'\n%{http_code}|%{redirect_url}' \
+      http://connectivitycheck.gstatic.com/generate_204 2>&1)"
+    rc=$?
+    IFS='|' read -r code login_url <<<"$(tail -n 1 <<<"$result")"
+    if ((rc != 0)); then
+      fail "Wi-Fi sign-in probe failed: ${result//$'\n'/ }"
+      printf 'If you know the login URL, retry with --portal-only --portal-url URL.\n'
+      return
+    fi
+    case "$code" in
+      204)
+        pass 'HTTP connectivity probe returned the expected 204; no captive portal detected on this path.'
+        return
+        ;;
+      30[12378])
+        if [[ -z "$login_url" ]]; then
+          fail "HTTP $code redirect did not provide a login URL."
+          return
+        fi
+        ;;
+      200|511)
+        PORTAL_DETECTED=1
+        warn "HTTP $code instead of the expected 204: possible sign-in page or HTTP interception without a redirect."
+        printf 'Open http://neverssl.com/ in a browser. If sign-in fails, rerun with --portal-only --portal-url followed by the login URL.\n'
+        return
+        ;;
+      *)
+        fail "HTTP connectivity probe returned unexpected status $code; portal detection is inconclusive."
+        return
+        ;;
+    esac
+  fi
+
+  PORTAL_DETECTED=1
+  warn "Wi-Fi login URL: $login_url"
+  result="$("${direct_curl[@]}" --location --max-redirs 5 --output /dev/null \
+    --write-out $'\n%{http_code}|%{url_effective}' -- "$login_url" 2>&1)"
+  rc=$?
+  IFS='|' read -r code effective_url <<<"$(tail -n 1 <<<"$result")"
+  effective_url="${effective_url:-$login_url}"
+
+  # Inspect the final redirect target too: a public front door can send the
+  # browser to a private address that only exists on the current network.
+  if [[ "$effective_url" =~ ^https?://([a-zA-Z0-9._-]+)(:[0-9]+)?([/?#]|$) ]]; then
+    host="${BASH_REMATCH[1]}"
+    if command -v getent >/dev/null; then
+      addresses="$(portal_command getent ahostsv4 "$host" 2>/dev/null | awk '{print $1}' | sort -u)"
+      if [[ -z "$addresses" ]]; then
+        warn "No IPv4 DNS answer for $host. Check the Wi-Fi supplied DNS and VPN/secure-DNS settings."
+      fi
+      if command -v ip >/dev/null && ip link show tailscale0 >/dev/null 2>&1; then
+        tailscale_present=1
+      fi
+      while IFS= read -r address; do
+        [[ -n "$address" ]] || continue
+        printf 'Portal DNS: %s -> %s\n' "$host" "$address"
+        if command -v ip >/dev/null; then
+          route="$(ip -4 route get "$address" 2>&1)"
+          printf 'Portal route: %s\n' "$route"
+        fi
+        IFS='.' read -r first second rest <<<"$address"
+        if [[ "$first" == 100 && "$second" =~ ^[0-9]+$ ]] && ((second >= 64 && second <= 127)); then
+          if ((tailscale_present)); then
+            overlap=1
+            warn 'Portal address overlaps Tailscale (100.64.0.0/10). Tailscale may filter replies arriving over Wi-Fi, even when the route is correct.'
+          else
+            printf 'Portal uses the shared address range 100.64.0.0/10; no tailscale0 interface was found.\n'
+          fi
+        fi
+      done <<<"$addresses"
+    else
+      warn 'getent is unavailable; cannot check portal DNS for VPN address conflicts.'
+    fi
+  else
+    warn 'Cannot inspect the login hostname; use an HTTP(S) URL with an IPv4 address or DNS hostname.'
+  fi
+
+  if ((rc == 0)) && [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+    pass "Login page is reachable (HTTP $code). Open $login_url in a browser and accept the network terms."
+    if ((overlap)); then
+      printf 'The address overlap is present, but this request succeeded; filtering is not demonstrated.\n'
+    fi
+  else
+    fail "Login page request failed (curl exit $rc, HTTP $code): ${result//$'\n'/ }"
+    if ((overlap && rc == 28)); then
+      warn "LIKELY CAUSE: Tailscale filtering conflicts with this network's login address. This is a diagnosis to verify, not proof of the exact firewall rule."
+      printf '%s\n' \
+        'Try this recovery:' \
+        '  1. Run: sudo systemctl stop tailscaled' \
+        '  2. Stay connected to this Wi-Fi, open the login URL above, and accept its terms.' \
+        '  3. Run: sudo systemctl start tailscaled' \
+        '  4. Rerun this check to verify the result.' \
+        'For stronger evidence, capture TCP traffic to the portal IP: replies arriving while the connection times out indicate local filtering.'
+    elif ((rc == 60)); then
+      printf 'TLS certificate verification failed. Check the system clock and that this is the intended network; keep certificate verification enabled.\n'
+    else
+      printf 'Check Wi-Fi supplied DNS, VPN settings, and local routes/firewall. The gateway IP does not necessarily host the login page.\n'
+    fi
+  fi
+}
+
+summary() {
+  section "Summary"
+  printf 'PASS=%d  WARN=%d  FAIL=%d\n' "$pass_count" "$warn_count" "$fail_count"
 }
 
 dns_probe() {
@@ -383,13 +553,28 @@ printf 'Host: %s\n' "$(hostname)"
 
 section "Local addressing and routes"
 if command -v ip >/dev/null; then
-  ip -brief address
+  if ((! PORTAL_ONLY)); then
+    ip -brief address
+  fi
   printf '\nIPv4 default route:\n'
   ip -4 route show default || true
   printf 'IPv6 default route:\n'
   ip -6 route show default || true
 else
   warn "ip command is unavailable; skipping local address and route display"
+fi
+
+section "Wi-Fi sign-in and VPN conflicts"
+portal_probe
+if ((PORTAL_DETECTED)); then
+  printf 'Complete Wi-Fi sign-in, then rerun. Further internet tests are skipped until sign-in is resolved.\n'
+  summary
+  exit 1
+fi
+if ((PORTAL_ONLY)); then
+  summary
+  ((fail_count == 0))
+  exit $?
 fi
 
 section "Internet protocol support"
@@ -437,8 +622,7 @@ else
   warn "Skipped by --skip-speed"
 fi
 
-section "Summary"
-printf 'PASS=%d  WARN=%d  FAIL=%d\n' "$pass_count" "$warn_count" "$fail_count"
+summary
 printf 'A failed IPv6 check is normal on IPv4-only networks.\n'
 printf 'Cloudflare speed figures are single-transfer estimates, not the full browser test methodology.\n'
 
