@@ -63,3 +63,13 @@ jobs:
         # Never skip evaluation/build on a cache hit. Nix still resolves the
         # current configuration and requires its exact output paths.
         run: nix build '.#nixosConfigurations.j2.config.system.build.toplevel' --no-link -L
+
+  portable-home-ubuntu:
+    # The Ubuntu runner stands in for a non-NixOS machine adopting the portable
+    # Home Manager profile: activate it, then exercise tmux and its plugins.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31
+      - name: Activate portable home and check tmux
+        run: bash .github/ci/check-portable-home.sh
