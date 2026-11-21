@@ -215,6 +215,40 @@ public-upload-file() {
 # Add boat.dev cli to path
 export PATH="/home/saleh/.ascii/bin:$PATH"
 
+# tmux ===========================================
+
+# List tmux-resurrect saves, oldest first, with the sessions in each.
+# "*" marks the save that Ctrl-b Ctrl-r and Continuum's auto-restore will use.
+tmux-saves() {
+  local dir="$HOME/.tmux/resurrect" last file sessions mark
+  local -a files=("$dir"/tmux_resurrect_*.txt)
+  if [[ ! -e "${files[0]}" ]]; then
+    printf 'No tmux-resurrect saves in %s\n' "$dir"
+    return 1
+  fi
+
+  last=$(readlink "$dir/last" 2>/dev/null)
+  for file in "${files[@]}"; do
+    sessions=$(awk -F'\t' '$1 == "pane" && !seen[$2]++ { printf "%s%s", sep, $2; sep = ", " }' "$file")
+    mark=' '
+    [[ ${file##*/} == "$last" ]] && mark='*'
+    printf '%s %s  %s\n' "$mark" "${file##*/}" "$sessions"
+  done
+}
+
+# Delete every tmux-resurrect save after confirmation, to start fresh.
+tmux-saves-clear() {
+  local dir="$HOME/.tmux/resurrect" reply
+  tmux-saves || return 0
+  read -r -p 'Delete all of these saves? [y/N] ' reply
+  if [[ $reply != [yY] ]]; then
+    printf 'Kept.\n'
+    return 1
+  fi
+  rm -f -- "$dir"/tmux_resurrect_*.txt "$dir/last"
+  printf 'Deleted.\n'
+}
+
 
 # Misc notes ==============================
 # wireplumber failing around ALSA device handling causing CPU to overheat?
