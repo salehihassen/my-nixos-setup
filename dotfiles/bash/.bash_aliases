@@ -15,7 +15,6 @@ edit-aliases() {
 }
 alias docker-ps='docker ps -a --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"'
 alias myip='curl ifconfig.me'
-alias zen='zen-beta'
 unalias nebius 2>/dev/null || true
 nebius() (
   # promptui miscounts wrapped rows when project names exceed the terminal width.

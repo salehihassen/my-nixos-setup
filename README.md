@@ -532,11 +532,11 @@ Cache hits never skip the source checks or the final J2 build. On every run,
 `.github/ci/custom-sources.nix` **before enabling the personal cache**:
 
 - Freshly download the pinned Compose2nix, DisplayLink packaging, Noctalia,
-  T3 Code packaging, and Zen packaging GitHub archives, and compare their
-  unpacked hashes with `flake.lock`.
-- Freshly download Niri's source, T3 Code's source, Zen's release archive, and
-  the DisplayLink vendor ZIP, and verify their package hashes. These checks
-  contact the original download URLs even if a matching store path exists.
+  and T3 Code packaging GitHub archives, and compare their unpacked hashes
+  with `flake.lock`.
+- Freshly download Niri's source, T3 Code's source, and the DisplayLink vendor
+  ZIP, and verify their package hashes. These checks contact the original
+  download URLs even if a matching store path exists.
 - Re-run Caddy's plugin fetcher, Compose2nix's Go dependency fetcher, Niri's
   Cargo vendor fetcher, and T3 Code's pnpm and monitor Cargo vendor fetchers.
   Substitution is disabled for these fetchers; existing local outputs use

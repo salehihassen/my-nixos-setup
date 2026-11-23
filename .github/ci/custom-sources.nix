@@ -50,12 +50,10 @@ in
       "displaylinkSrc"
       "noctalia"
       "t3-code-nix"
-      "zen-browser"
     ]
     ++ [
       (download "niri" config.programs.niri.package.src)
       (download "t3code" (if t3codeFromSource then t3code.sourceUnwrapped.src else t3code.src))
-      (download "zen-browser-release" home.programs.zen-browser.package.unwrapped.src)
       {
         label = "displaylink-archive";
         inherit (host.pkgs.displaylink.src) name;

@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  inputs,
   dotfilesRoot,
   ...
 }:
@@ -10,7 +9,6 @@
 {
   imports = [
     ./noctalia.nix # Noctalia UIs
-    inputs.zen-browser.homeModules.beta # For Zen browser
   ];
 
   dotfiles.stowPackages = [
@@ -82,11 +80,6 @@
   # Ghostty's editable preferences are managed by GNU Stow.
   programs.ghostty.enable = true;
   programs.fuzzel.enable = true;
-
-  programs.zen-browser = {
-    enable = true;
-    setAsDefaultBrowser = false;
-  };
 
   xdg.mimeApps = {
     enable = true;

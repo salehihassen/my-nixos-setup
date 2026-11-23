@@ -98,7 +98,7 @@ export function castConsumers(cast, graph = [], processNames = {}) {
 
 function purpose(consumers) {
   const recording = consumers.some(item => /gpu-screen-recorder/i.test(`${item.binary} ${item.name}`));
-  const sharing = consumers.some(item => /chromium|chrome|firefox|zen(?:\b|-)/i.test(`${item.binary} ${item.name}`));
+  const sharing = consumers.some(item => /chromium|chrome|firefox/i.test(`${item.binary} ${item.name}`));
   return recording && sharing ? 'REC+SHARE' : recording ? 'REC' : sharing ? 'SHARE' : 'CAST';
 }
 
