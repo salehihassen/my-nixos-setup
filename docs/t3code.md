@@ -220,6 +220,27 @@ service does not source shell startup files. The launcher above loads the
 existing proxy setup for T3 explicitly. The service's
 `T3CODE_DISABLE_AUTO_UPDATE=1` setting controls T3 itself, not Claude Code.
 
+## Antigravity provider
+
+T3 uses Google's separate Antigravity ACP runtime, not the `agy` CLI.
+It discovers `agy_acp_server.par` on its service PATH and requires an executable
+`localharness_external` beside the resolved executable. `home/t3code.nix`
+includes `pkgs.antigravity-acp` in `providerPackages`; adding it to the source
+configuration takes effect only after activating a new generation.
+
+Build and activate the NixOS configuration using the workflow below. The
+generated T3 service PATH includes the ACP package directly, so the default
+Antigravity Binary path can remain empty. An additional `nix profile add`
+installation is unnecessary.
+
+After activation, refresh the Antigravity provider in Settings and complete
+its Google sign-in when prompted. The CLI installation alone does not
+establish T3's account access.
+
+A temporary user-profile copy was installed while diagnosing the missing
+runtime on November 22, 2026. After the declarative service is activated,
+remove that copy with `nix profile remove antigravity-acp`.
+
 ## Update or switch channel
 
 Automatic application updates are disabled. The packaging flake tracks upstream
