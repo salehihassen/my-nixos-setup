@@ -1,11 +1,5 @@
 { config, lib, pkgs, username, ... }:
 let
-  caddy = pkgs.caddy.withPlugins {
-    plugins = [ "github.com/caddy-dns/porkbun@v0.3.1" ];
-    # Recheck this source hash after nixpkgs/Go or plugin updates; a cached
-    # fixed-output source can hide a stale hash in an ordinary local build.
-    hash = "sha256-3XnnBdOW8A+LmmcqR94v1ZkyMoMB3EfBWFv0uBzz4cA=";
-  };
   prepareAddresses = pkgs.writeShellApplication {
     name = "t3code-caddy-addresses";
     runtimeInputs = [ pkgs.tailscale pkgs.coreutils ];
@@ -23,31 +17,39 @@ let
   runCaddy = pkgs.writeShellScript "t3code-caddy-run" ''
     set -eu
     . /run/t3code-caddy/addresses.env
-    exec ${lib.getExe caddy} "$@"
+    exec ${lib.getExe config.services.caddy.package} "$@"
   '';
 in {
   users.users.${username}.linger = true;
 
+  security.acme = {
+    acceptTerms = true;
+    certs."j2t3c.d.salehh.xyz" = {
+      dnsProvider = "porkbun";
+      environmentFile = "/etc/caddy/porkbun.env";
+    };
+  };
+
+  # Reuse the existing credentials file; Lego names the secret differently.
+  systemd.services."acme-order-renew-j2t3c.d.salehh.xyz".script = lib.mkBefore ''
+    export PORKBUN_SECRET_API_KEY="$PORKBUN_API_SECRET_KEY"
+  '';
+
   services.caddy = {
     enable = true;
-    package = caddy;
     openFirewall = false;
     enableReload = false;
-    environmentFile = "/etc/caddy/porkbun.env";
     globalConfig = ''
       auto_https disable_redirects
       default_bind {$CADDY_BIND_ADDRESSES}
     '';
-    virtualHosts."j2t3c.d.salehh.xyz".extraConfig = ''
-      bind {$CADDY_BIND_ADDRESSES}
-      tls {
-        dns porkbun {
-          api_key {env.PORKBUN_API_KEY}
-          api_secret_key {env.PORKBUN_API_SECRET_KEY}
-        }
-      }
-      reverse_proxy 127.0.0.1:3773
-    '';
+    virtualHosts."j2t3c.d.salehh.xyz" = {
+      useACMEHost = "j2t3c.d.salehh.xyz";
+      extraConfig = ''
+        bind {$CADDY_BIND_ADDRESSES}
+        reverse_proxy 127.0.0.1:3773
+      '';
+    };
     # Native Tailscale hostname and IP fallback. This intentionally serves HTTP
     # over WireGuard, without claiming Tailscale Serve's HTTPS listener.
     extraConfig = ''

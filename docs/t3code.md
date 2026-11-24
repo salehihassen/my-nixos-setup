@@ -41,6 +41,8 @@ journalctl --user -u t3code -n 50
 systemctl --user restart t3code
 systemctl status caddy
 journalctl -u caddy -n 50
+systemctl status acme-order-renew-j2t3c.d.salehh.xyz
+journalctl -u acme-order-renew-j2t3c.d.salehh.xyz -n 50
 loginctl show-user saleh -p Linger
 ```
 
@@ -53,10 +55,20 @@ state); the working directory is `/home/saleh`. The service uses npm-managed
 Claude Code and Codex from `~/.npm-global/bin`, plus existing credentials in the
 user's home. Authenticate expired providers interactively as Saleh.
 
-Caddy reads Porkbun credentials from `/etc/caddy/porkbun.env`, owned by root
-with mode 600. Machine addresses are discovered into
-`/run/t3code-caddy/addresses.env` at each Caddy start. Neither is in Git or the
-Nix store. Caddy certificates/state live in `/var/lib/caddy`.
+NixOS ACME obtains and renews the HTTPS certificate using Lego's built-in
+Porkbun DNS provider. Stock Caddy uses it through `useACMEHost`; NixOS handles
+certificate permissions and restarts Caddy after renewal. The first switch
+issues a new certificate; until issuance succeeds, ACME supplies a self-signed
+certificate. Check the ACME journal above if HTTPS is not trusted after switching.
+
+ACME reads `/etc/caddy/porkbun.env`, owned by root with mode 600, containing
+`PORKBUN_API_KEY` and `PORKBUN_API_SECRET_KEY`. The renewal service maps the
+latter to Lego's `PORKBUN_SECRET_API_KEY` at runtime. Caddy no longer receives
+the DNS credentials. Certificates live in `/var/lib/acme/j2t3c.d.salehh.xyz`;
+Caddy's remaining state lives in `/var/lib/caddy`.
+
+Machine addresses are discovered into `/run/t3code-caddy/addresses.env` at each
+Caddy start. Neither addresses nor credentials are in Git or the Nix store.
 
 For initial setup with credentials staged in `~/.local/share/t3code-provisioning/porkbun.env`, run:
 

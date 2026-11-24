@@ -64,7 +64,6 @@ in
     ];
 
   bundles = [
-    (bundle "caddy-plugins" config.services.caddy.package.src)
     (bundle "compose2nix-go-modules" flake.inputs.compose2nix.packages.x86_64-linux.default.goModules)
     (bundle "niri-cargo-vendor" config.programs.niri.package.cargoDeps.vendorStaging)
   ] ++ host.pkgs.lib.optionals t3codeFromSource [
