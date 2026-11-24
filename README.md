@@ -74,6 +74,18 @@ pinned paths for Sensible, Resurrect, and Continuum.
   first tmux server started after a reboot restores the last save. `prefix Ctrl-s` saves immediately
   and `prefix Ctrl-r` restores manually. Saves live in `~/.tmux/resurrect/`.
 
+## Router update recovery
+
+`nix run path:/etc/nixos#router-config -- check` performs read-only router and NAS
+network checks. The tool also previews configuration repairs and creates
+encrypted manual backups when explicitly requested. No background job is
+installed. Run backups on demand while SnapRAID is idle. The destination is
+`u3:/mnt/pool/vault/backups/manual/routers/`.
+
+See [the router recovery guide](scripts/router-config/README.md) for private site
+configuration, backup and baseline capture, guarded reapplication, firmware
+compatibility restrictions, and recovery instructions.
+
 ## Wi-Fi sign-in diagnostics
 
 When connected to a hotel, train, airport, or other Wi-Fi network that requires

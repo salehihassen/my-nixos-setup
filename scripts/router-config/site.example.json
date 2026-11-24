@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "identity_file": "~/.ssh/id_ed25519",
+  "recipient_file": "~/.ssh/id_ed25519.pub",
+  "backup": {
+    "ssh": "saleh@nas.example",
+    "host_key_alias": "u3",
+    "expected_hostname": "u3",
+    "pool_mount": "/mnt/pool",
+    "directory": "/mnt/pool/vault/backups/manual/routers"
+  },
+  "network_checks": [
+    {"name": "u3", "ssh": "saleh@nas.example", "host_key_alias": "u3", "interface": "enp5s0", "gateway": "192.168.50.1"}
+  ],
+  "routers": {
+    "main": {
+      "ssh": "root@192.168.50.1",
+      "model": "GL-BE9300",
+      "firmware": "4.10.2",
+      "admin_url": "http://192.168.50.1/",
+      "subnets": {"lan": "192.168.50.1/24", "iot": "192.168.60.1/24"},
+      "desired": [
+        {"package": "network", "section": "lan", "type": "interface", "options": {"ipaddr": "192.168.50.1", "netmask": "255.255.255.0"}},
+        {"package": "network", "section": "iot", "type": "interface", "options": {"ipaddr": "192.168.60.1", "netmask": "255.255.255.0"}},
+        {"package": "dhcp", "type": "host", "match": {"option": "mac", "value": "02:00:00:00:00:04"}, "create": "office_beryl", "options": {"mac": "02:00:00:00:00:04", "ip": "192.168.50.186"}}
+      ]
+    },
+    "office": {
+      "ssh": "root@192.168.50.186",
+      "model": "GL-MT3000",
+      "firmware": "4.11.1",
+      "admin_url": "http://192.168.50.186/",
+      "wds": true,
+      "subnets": {"lan": "192.168.50.186/24"},
+      "desired": [
+        {"package": "network", "section": "lan", "type": "interface", "options": {"proto": "dhcp"}},
+        {"package": "glconfig", "section": "general", "type": "service", "options": {"mode": "wds"}},
+        {"package": "repeater", "section": "@main[0]", "type": "main", "options": {"disabled": "0"}},
+        {"package": "repeater", "type": "network", "match": {"option": "ssid", "value": "ExampleHome"}, "options": {"network": "lan", "wds": "1", "selected": "1"}}
+      ]
+    }
+  }
+}

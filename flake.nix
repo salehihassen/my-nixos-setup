@@ -156,7 +156,15 @@
         b1 = mkHost ./hosts/b1.nix;
       };
 
-      packages.${system}.recoveryIso = recoveryIso.config.system.build.isoImage;
+      packages.${system} = {
+        recoveryIso = recoveryIso.config.system.build.isoImage;
+        router-config = nixpkgs.legacyPackages.${system}.callPackage ./scripts/router-config/package.nix { };
+      };
+
+      apps.${system}.router-config = {
+        type = "app";
+        program = "${self.packages.${system}.router-config}/bin/router-config";
+      };
 
       checks.${system} =
         let
@@ -187,6 +195,12 @@
         in
         {
           portable-home = (standalone [ ]).activationPackage;
+          router-config-tests = pkgs.runCommand "router-config-tests" {
+            nativeBuildInputs = [ pkgs.python3 pkgs.age pkgs.openssh ];
+          } ''
+            python3 -B -m unittest discover -s ${./scripts/router-config} -p 'test_*.py'
+            touch "$out"
+          '';
           dictation-home =
             (standalone [
               ./home/dictation.nix
