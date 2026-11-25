@@ -3,7 +3,7 @@
 let
   captureMonitor = pkgs.writeShellApplication {
     name = "capture-target-monitor";
-    runtimeInputs = [ pkgs.nodejs_24 pkgs.pipewire pkgs.inotify-tools ];
+    runtimeInputs = [ pkgs.nodejs_24 pkgs.pipewire ];
     text = ''
       exec node ${lib.escapeShellArg "${dotfilesRoot}/dotfiles/noctalia/.local/share/noctalia/plugins/capture-target/monitor.mjs"} "$@"
     '';

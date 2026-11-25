@@ -43,7 +43,7 @@ type = "saleh/capture-target:label"
 
 [widget.privacy]
 type = "privacy"
-# Show confirmed PipeWire activity; the companion also catches direct camera use.
+# Use Noctalia's built-in camera detection to filter brief device probes.
 hide_inactive = true
 active_color = "#ff5252"
 inactive_color = "outline"

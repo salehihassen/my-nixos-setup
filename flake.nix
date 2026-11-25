@@ -231,7 +231,7 @@
               '';
           capture-target-tests =
             pkgs.runCommand "capture-target-tests" {
-              nativeBuildInputs = [ pkgs.nodejs_24 pkgs.inotify-tools ];
+              nativeBuildInputs = [ pkgs.nodejs_24 ];
             } ''
               mkdir -p scripts dotfiles/noctalia/.local/share/noctalia/plugins
               cp ${./scripts/capture-target.test.mjs} scripts/capture-target.test.mjs

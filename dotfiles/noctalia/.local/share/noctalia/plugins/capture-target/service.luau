@@ -1,4 +1,4 @@
--- One persistent stream for the session, shared by every bar instance.
+-- One persistent screen capture status stream, shared by every bar instance.
 -- Noctalia terminates this entire process group on reload or plugin disable.
 -- Restart only after an unexpected monitor exit, with an explicit unknown state.
 local command = [[while :; do

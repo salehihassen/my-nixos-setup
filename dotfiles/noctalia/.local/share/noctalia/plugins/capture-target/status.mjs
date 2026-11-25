@@ -134,21 +134,6 @@ export function summarize({ casts, outputs = {}, windows = [], graph = [], proce
   };
 }
 
-export function withCamera(status, users) {
-  if (users === null) return {
-    ...status, text: `Camera status unavailable | ${status.text}`, tone: 'error', cameraUnavailable: true,
-    tooltip: 'Could not check direct camera use.\n\n' + status.tooltip,
-  };
-  if (!users.length) return status;
-  const apps = [...new Set(users.map(user => user.app))].join(', ');
-  const capture = status.text === 'No active capture' ? 'No screen capture detected' : status.text;
-  return {
-    ...status, text: `CAM · ${apps} | ${capture}`, tone: 'recording', cameraActive: true,
-    tooltip: users.map(user => `Camera in use: ${user.app} (${user.device}; PID ${user.pid})`).join('\n')
-      + '\n\n' + status.tooltip,
-  };
-}
-
 // Twelve text characters leave room for an adjacent icon and a space while
 // keeping the combined indicator under fifteen. Full details stay on hover.
 export function panelStatus(status) {
@@ -162,16 +147,10 @@ export function panelStatus(status) {
     const state = active.length === 0 ? 'PAUSED'
       : kinds.length === 1 ? kinds[0] : recording && sharing ? 'REC+SHARE'
       : recording ? 'REC+CAST' : sharing ? 'SHARE+CAST' : 'CAST';
-    const cameraState = state.replace('REC+SHARE', 'REC+SHR').replace('SHARE+CAST', 'SHR+CAST');
-    text = status.cameraActive ? `CAM+${cameraState}`
-      : status.cameraUnavailable ? `CAM? ${state}`
-      : captures.length === 1 && state !== 'REC+SHARE' ? `${state} ${captures[0].target}`
+    text = captures.length === 1 && state !== 'REC+SHARE' ? `${state} ${captures[0].target}`
       : `${state} x${captures.length}`;
   } else {
-    text = status.cameraUnavailable ? 'Camera ?'
-      : status.tone === 'error' ? 'Capture ?'
-      : status.cameraActive ? 'Camera on' : 'Idle';
-    if (status.cameraActive && status.text.includes('Capture status unavailable')) text = 'CAM+Capture?';
+    text = status.tone === 'error' ? 'Capture ?' : 'Idle';
   }
   return { ...status, text: shorten(text, 12) };
 }

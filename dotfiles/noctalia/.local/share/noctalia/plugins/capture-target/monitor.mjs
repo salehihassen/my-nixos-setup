@@ -1,11 +1,9 @@
 import { spawn } from 'node:child_process';
-import { watch } from 'node:fs';
-import { readFile, readdir, readlink, realpath } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import net from 'node:net';
-import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
-import { panelStatus, summarize, withCamera } from './status.mjs';
+import { panelStatus, summarize } from './status.mjs';
 
 // pw-dump --monitor emits consecutive, pretty-printed JSON arrays. Decode each
 // value once, even when it crosses pipe chunks or contains brackets in strings.
@@ -47,129 +45,6 @@ export function updateGraph(graph, batch) {
   }
 }
 
-// Read only descriptors visible to the desktop user, only after camera events.
-// Looking at /proc symlinks never opens the video device or reads its frames.
-export async function cameraUsers(cameras, procRoot = '/proc') {
-  const devices = new Set(cameras);
-  const users = [];
-  if (!devices.size) return users;
-  for (const pid of await readdir(procRoot)) {
-    if (!/^\d+$/.test(pid)) continue;
-    let descriptors;
-    try { descriptors = await readdir(path.join(procRoot, pid, 'fd')); }
-    catch (error) {
-      if (['ENOENT', 'ESRCH', 'EACCES', 'EPERM'].includes(error.code)) continue;
-      throw error;
-    }
-    const opened = new Set();
-    await Promise.all(descriptors.map(async fd => {
-      try {
-        const device = await readlink(path.join(procRoot, pid, 'fd', fd));
-        if (devices.has(device)) opened.add(device);
-      } catch (error) {
-        if (!['ENOENT', 'ESRCH', 'EACCES', 'EPERM', 'EINVAL'].includes(error.code)) throw error;
-      }
-    }));
-    if (!opened.size) continue;
-    let app;
-    try { app = (await readFile(path.join(procRoot, pid, 'comm'), 'utf8')).trim(); }
-    catch (error) { if (['ENOENT', 'ESRCH'].includes(error.code)) continue; throw error; }
-    if (/^(pipewire(?:-pulse)?|wireplumber)$/.test(app)) continue;
-    for (const device of opened) users.push({ pid, app, device });
-  }
-  return users.sort((a, b) => a.pid.localeCompare(b.pid) || a.device.localeCompare(b.device));
-}
-
-export function watchCameras(onChange, {
-  devRoot = '/dev', sysRoot = '/sys/class/video4linux', procRoot = '/proc',
-  inotifyCommand = ['inotifywait'], debounceMs = 100, retryMs = 1000,
-} = {}) {
-  let stopped = false, child, directory, timer, retry, generation = 0;
-  let running = false, dirty = false, cameras = [];
-  const later = () => {
-    clearTimeout(retry);
-    if (!stopped) retry = setTimeout(setup, Math.min(retryMs *= 2, 30000));
-  };
-  const scan = async () => {
-    if (stopped) return;
-    if (running) { dirty = true; return; }
-    running = true;
-    const version = generation;
-    try {
-      const users = await cameraUsers(cameras, procRoot);
-      if (!stopped && version === generation) onChange(users);
-    } catch { if (!stopped && version === generation) onChange(null); }
-    finally {
-      running = false;
-      if (dirty) { dirty = false; schedule(); }
-    }
-  };
-  const schedule = () => {
-    if (stopped || timer) return;
-    timer = setTimeout(() => { timer = null; void scan(); }, debounceMs);
-  };
-  const setup = async () => {
-    const version = ++generation;
-    clearTimeout(retry);
-    clearTimeout(timer); timer = null; dirty = false;
-    child?.kill(); child = null;
-    // Unknown until inotify confirms the watches exist, then scan descriptors
-    // that were already open before the monitor started.
-    onChange(null);
-    try {
-      if (!directory) {
-        directory = watch(devRoot, (_event, name) => {
-          if (/^video\d+$/.test(String(name))) void setup();
-        });
-        directory.on('error', () => {
-          directory?.close(); directory = null;
-          ++generation; child?.kill(); child = null;
-          onChange(null); later();
-        });
-      }
-      let names;
-      try { names = await readdir(sysRoot); }
-      catch (error) { if (error.code === 'ENOENT') names = []; else throw error; }
-      const found = (await Promise.all(names.filter(n => /^video\d+$/.test(n)).map(async name => {
-        try { return (await readFile(path.join(sysRoot, name, 'index'), 'utf8')).trim() === '0' ? path.join(devRoot, name) : null; }
-        catch (error) { if (error.code === 'ENOENT') return null; throw error; }
-      }))).filter(Boolean);
-      if (stopped || version !== generation) return;
-      cameras = found;
-      if (!cameras.length) { onChange([]); return; }
-      const watcher = spawn(inotifyCommand[0], [...inotifyCommand.slice(1), '--monitor', '--event', 'open,close,delete_self,move_self', '--format', '%e', ...cameras], {
-        stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, LC_ALL: 'C' },
-      });
-      child = watcher;
-      let ready = false;
-      createInterface({ input: watcher.stderr }).on('line', line => {
-        if (stopped || version !== generation) return;
-        if (line.includes('Watches established.')) { ready = true; retryMs = 1000; schedule(); }
-      });
-      createInterface({ input: watcher.stdout }).on('line', line => {
-        if (stopped || version !== generation) return;
-        if (/DELETE_SELF|MOVE_SELF|IGNORED|Q_OVERFLOW/.test(line)) void setup();
-        else if (ready) schedule();
-      });
-      const failed = () => {
-        if (stopped || version !== generation) return;
-        ++generation; child = null;
-        onChange(null); later();
-      };
-      watcher.once('error', failed);
-      watcher.once('exit', failed);
-    } catch {
-      if (!stopped && version === generation) { onChange(null); later(); }
-    }
-  };
-  void setup();
-  return () => {
-    stopped = true; ++generation;
-    clearTimeout(timer); clearTimeout(retry);
-    directory?.close(); child?.kill();
-  };
-}
-
 function request(socketPath, command) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection(socketPath);
@@ -193,11 +68,11 @@ export function startMonitor({
   socketPath = process.env.NIRI_SOCKET,
   emit = status => process.stdout.write(JSON.stringify(status) + '\n'),
   pwCommand = ['pw-dump', '--monitor', '--no-colors'],
-  cameraOptions = {}, debounceMs = 75, retryMs = 1000,
+  debounceMs = 75, retryMs = 1000,
 } = {}) {
   if (!socketPath) throw Error('NIRI_SOCKET is missing; start the monitor inside the Niri session');
   let stopped = false, socket, pipewire, publishTimer, niriRetry, pwRetry;
-  let casts = null, windows = new Map(), outputs = {}, users = null, pipewireReady = false;
+  let casts = null, windows = new Map(), outputs = {}, pipewireReady = false;
   let last = '', niriGeneration = 0, pwGeneration = 0, outputNames = '';
   let niriDelay = retryMs, pwDelay = retryMs;
   const graph = new Map(), processNames = {};
@@ -212,7 +87,7 @@ export function startMonitor({
       if (casts.some(cast => cast.is_active)) status.tooltip += '\nPipeWire consumer information is unavailable.';
       else status = { text: 'Capture status unavailable', tone: 'error', captures: [], tooltip: 'Retained Niri casts cannot be attributed while PipeWire is unavailable.' };
     }
-    const value = JSON.stringify(panelStatus(withCamera(status, users)));
+    const value = JSON.stringify(panelStatus(status));
     if (value !== last) { last = value; emit(JSON.parse(value)); }
   };
   const changed = () => { if (!stopped && !publishTimer) publishTimer = setTimeout(publish, debounceMs); };
@@ -295,18 +170,17 @@ export function startMonitor({
     };
     current.once('error', failed); current.once('exit', failed);
   };
-  const stopCamera = watchCameras(value => { users = value; changed(); }, cameraOptions);
   connectNiri(); connectPipeWire();
   return () => {
     stopped = true; ++niriGeneration; ++pwGeneration;
     clearTimeout(publishTimer); clearTimeout(niriRetry); clearTimeout(pwRetry);
-    socket?.destroy(); pipewire?.kill(); stopCamera();
+    socket?.destroy(); pipewire?.kill();
   };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(await realpath(process.argv[1])).href) {
   if (process.argv.includes('--help')) {
-    console.log('Usage: capture-target-monitor\nStreams capture-status changes as JSON lines. Read-only; never takes screenshots or opens cameras.');
+    console.log('Usage: capture-target-monitor\nStreams screen capture status changes as JSON lines.');
   } else {
     const stop = startMonitor();
     process.once('exit', stop);

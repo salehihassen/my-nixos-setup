@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { castConsumers, monitorLabel, panelStatus, summarize, withCamera } from '../dotfiles/noctalia/.local/share/noctalia/plugins/capture-target/status.mjs';
+import { castConsumers, monitorLabel, panelStatus, summarize } from '../dotfiles/noctalia/.local/share/noctalia/plugins/capture-target/status.mjs';
 
 const node = (id, props) => ({ id, type: 'PipeWire:Interface:Node', info: { props } });
 const client = (id, binary, name) => ({
@@ -107,19 +107,6 @@ test('multiple targets remain discoverable without filling the entire panel', ()
   assert.match(status.tooltip, /DP-3/);
 });
 
-test('camera remains visible alongside screen sharing, with truthful idle and error states', () => {
-  const users = [{ pid: '1', app: 'chromium', device: '/dev/video4' }];
-  const idle = summarize({ casts: [] });
-  const active = withCamera(idle, users);
-  assert.equal(active.text, 'CAM · chromium | No screen capture detected');
-  assert.equal(active.tone, 'recording');
-  assert.match(active.tooltip, /chromium \(\/dev\/video4; PID 1\)/);
-  const share = { text: 'SHARE · window: ~/ai (#154)', tone: 'sharing', tooltip: 'App: Chromium' };
-  assert.equal(withCamera(share, users).text, 'CAM · chromium | SHARE · window: ~/ai (#154)');
-  assert.equal(withCamera(share, []).text, share.text);
-  assert.equal(withCamera(idle, null).tone, 'error');
-});
-
 test('a suspended Chromium portal session retains its target without claiming active streaming', () => {
   const graph = [
     node(89, { 'media.class': 'Stream/Output/Video' }),
@@ -143,26 +130,20 @@ test('a suspended Chromium portal session retains its target without claiming ac
 });
 
 test('panel text plus an icon and spacing stays below fifteen characters, preserving full hover details', () => {
-  const users = [{ pid: '1', app: 'chromium', device: '/dev/video4' }];
   const single = summarize({ casts: [cast(1, { Window: { id: 55 } }, null)], windows: [{ id: 55, title: 'Long editor title 🐱' }] });
   const record = { ...single, captures: [{ prefix: 'REC', active: true, target: 'built-in' }] };
   const paused = { ...single, captures: [{ prefix: 'SHARE', active: false, target: '#55' }] };
   assert.equal(panelStatus(single).text, 'CAST #55');
   assert.equal(panelStatus(record).text, 'REC built-in');
   assert.equal(panelStatus(paused).text, 'PAUSED #55');
-  assert.equal(panelStatus(withCamera(paused, users)).text, 'CAM+PAUSED');
-  assert.equal(panelStatus(withCamera(summarize({ casts: [] }), users)).text, 'Camera on');
   assert.equal(panelStatus(summarize({ casts: [] })).text, 'Idle');
   const variants = [single, record, paused, summarize({ casts: [1, 2, 3].map(id => cast(id, { Output: { name: `DP-${id}` } }, null)) }),
     summarize({ casts: [cast(1, { Output: { name: 'A very long unfamiliar connector 🐱' } }, null)] }),
     { text: 'Capture status unavailable', tone: 'error', tooltip: 'Could not query Niri' }];
   for (const variant of variants) {
-    for (const camera of [[], users, null]) {
-      const full = withCamera(variant, camera);
-      const compact = panelStatus(full);
-      assert.ok(Array.from(compact.text).length + 2 < 15, compact.text);
-      assert.equal(compact.tooltip, full.tooltip);
-    }
+    const compact = panelStatus(variant);
+    assert.ok(Array.from(compact.text).length + 2 < 15, compact.text);
+    assert.equal(compact.tooltip, variant.tooltip);
   }
   assert.match(panelStatus(single).tooltip, /Long editor title 🐱 \(#55\)/);
 });
