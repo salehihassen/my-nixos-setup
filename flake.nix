@@ -88,6 +88,8 @@
           homeDirectory,
           dotfilesRoot,
           system ? "x86_64-linux",
+          # Servers pass [ ./home/portable-core.nix ] to skip development tooling.
+          baseHomeModules ? [ ./home/portable.nix ],
           homeModules ? [ ],
         }:
         home-manager.lib.homeManagerConfiguration {
@@ -102,14 +104,15 @@
               ;
           };
 
-          modules = [
-            ./home/portable.nix
-            {
-              home.homeDirectory = homeDirectory;
-              targets.genericLinux.enable = true;
-            }
-          ]
-          ++ homeModules;
+          modules =
+            baseHomeModules
+            ++ [
+              {
+                home.homeDirectory = homeDirectory;
+                targets.genericLinux.enable = true;
+              }
+            ]
+            ++ homeModules;
         };
 
       recoveryIso = nixpkgs.lib.nixosSystem {
@@ -127,6 +130,8 @@
     {
       lib.mkStandaloneHome = mkStandaloneHome;
       homeModules.portable = ./home/portable.nix;
+      homeModules.portable-core = ./home/portable-core.nix;
+      homeModules.portable-dev = ./home/portable-dev.nix;
       homeModules.desktop = ./home/desktop.nix;
       homeModules.helium = ./home/helium.nix;
       homeModules.dictation = ./home/dictation.nix;
@@ -169,14 +174,15 @@
       checks.${system} =
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          standalone =
-            homeModules:
+          standaloneWith =
+            baseHomeModules: homeModules:
             mkStandaloneHome {
-              inherit homeModules;
+              inherit baseHomeModules homeModules;
               username = "portable";
               homeDirectory = "/home/portable";
               dotfilesRoot = "/opt/dotfiles";
             };
+          standalone = standaloneWith [ ./home/portable.nix ];
           snapshotCommand =
             sourceMode:
             (home-manager.lib.homeManagerConfiguration {
@@ -201,6 +207,10 @@
             python3 -B -m unittest discover -s ${./scripts/router-config} -p 'test_*.py'
             touch "$out"
           '';
+          portable-core-home = (standaloneWith [ ./home/portable-core.nix ] [ ]).activationPackage;
+          # Servers link dotfiles read-only from a pinned copy instead of Stow.
+          portable-core-store-home =
+            (standaloneWith [ ./home/portable-core.nix ] [ { dotfiles.source = self; } ]).activationPackage;
           dictation-home =
             (standalone [
               ./home/dictation.nix
