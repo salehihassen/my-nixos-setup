@@ -29,7 +29,9 @@ flake.nix
 │   ├── hosts/<host>.nix           machine-specific policy
 │   ├── hosts/<host>-hardware.nix  generated disks and hardware
 │   └── Home Manager modules
-│       ├── home/portable.nix      shared CLI development environment
+│       ├── home/portable.nix      portable-core + portable-dev
+│       ├── home/portable-core.nix shell, editor, and debugging tools for every machine
+│       ├── home/portable-dev.nix  language runtimes, media, browser automation
 │       ├── home/desktop.nix       Niri, desktop applications, and user services
 │       ├── home/helium.nix        optional Helium browser trial
 │       ├── home/snapshot-work.nix optional window/workspace/browser captures
@@ -37,7 +39,7 @@ flake.nix
 │       ├── home/hardware-design.nix  optional hardware design applications
 │       ├── home/kubernetes.nix    optional k3d, kubectl, k9s, and Helm tooling
 │       └── home/<host>.nix        per-host user applications
-├── homeModules.{portable,desktop,helium,snapshot-work,av-editor,hardware-design,kubernetes}
+├── homeModules.{portable,portable-core,portable-dev,desktop,helium,snapshot-work,av-editor,hardware-design,kubernetes}
 ├── lib.mkStandaloneHome           portable Home Manager on non-NixOS Linux
 ├── checks.x86_64-linux.*              standalone builds and snapshot checks
 └── packages.x86_64-linux.recoveryIso
@@ -45,7 +47,9 @@ flake.nix
 
 `mkHostFor` integrates Home Manager into every NixOS host. Its default profile
 contains only `home/portable.nix`; desktop hosts must opt into the desktop module
-explicitly. `j2` composes portable, desktop, Helium, snapshot-work, AV editor, hardware design,
+explicitly. Servers that need only debugging tools import `home/portable-core.nix`
+(also exported as `homeModules.portable-core`, or passed to `mkStandaloneHome` as
+`baseHomeModules`) without the development tooling. `j2` composes portable, desktop, Helium, snapshot-work, AV editor, hardware design,
 Kubernetes, and `home/j2.nix`, while `b1` currently receives only portable. Home Manager uses
 the host's Nixpkgs package set, so host-level package policy such as `j2`'s
 unfree allowlist also applies to
@@ -376,6 +380,14 @@ The Stow symlinks point to the **editable checkout**, not a frozen Nix store
 copy. Edits to linked dotfiles take effect independently of a NixOS rebuild.
 Keep that checkout at the configured `dotfilesRoot`; moving or deleting it
 breaks the links.
+
+Servers without an editable checkout set `dotfiles.source` to a pinned copy of
+this repository (for example a flake input). portable-core then skips Stow and
+has Home Manager link the selected packages' files read-only from that copy,
+with the same exclusions as `.stow-local-ignore`. Home Manager stops instead
+of replacing an existing file it doesn't manage. To change those dotfiles, push
+the edit here and update the consuming flake's lock; for a quick fix, rebuild
+with `--override-input` pointing at a local clone.
 
 ## Make this configuration yours
 
@@ -724,7 +736,7 @@ homeConfigurations."your-user@workstation" = mkStandaloneHome {
   username = "your-user";
   homeDirectory = "/home/your-user";
   dotfilesRoot = "/home/your-user/src/nixos-config";
-  # portable.nix is always included by this helper. Optional additions:
+  # portable.nix is the default base (baseHomeModules). Optional additions:
   homeModules = [
     ./home/desktop.nix
     ./home/snapshot-work.nix
